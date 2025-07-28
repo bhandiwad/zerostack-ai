@@ -4,9 +4,9 @@ Handles organization operations, resource usage, and subscription management
 """
 
 from flask import Blueprint, request, jsonify
-from services.auth_service import require_auth, require_role, require_organization_access
-from services.organization_service import OrganizationService
-from models.organization import SubscriptionTier, OrganizationStatus
+from src.services.auth_service import require_auth, require_role, require_organization_access
+from src.services.organization_service import OrganizationService
+from src.models.organization import SubscriptionTier, OrganizationStatus
 
 org_bp = Blueprint('organization', __name__)
 

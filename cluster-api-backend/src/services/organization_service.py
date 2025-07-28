@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-from models.organization import Organization, SubscriptionTier, OrganizationStatus, AuditLog
+from src.models.organization import Organization, SubscriptionTier, OrganizationStatus, AuditLog
 
 class OrganizationService:
     def __init__(self, database_url='sqlite:///cluster_api.db'):

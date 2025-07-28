@@ -12,7 +12,7 @@ from flask import request, jsonify, current_app
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-from models.organization import User, Organization, UserRole, UserStatus, AuditLog
+from src.models.organization import User, Organization, UserRole, UserStatus, AuditLog
 
 class AuthService:
     def __init__(self, database_url='sqlite:///cluster_api_multitenant.db', jwt_secret_key='your-jwt-secret-key'):

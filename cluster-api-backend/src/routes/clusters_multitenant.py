@@ -4,11 +4,11 @@ Handles cluster operations with organization isolation and resource limits
 """
 
 from flask import Blueprint, request, jsonify
-from models.organization import Organization, User, AuditLog
-from services.auth_service import require_auth, require_role, require_organization_access
-from services.organization_service import OrganizationService
-from services.cluster_api_service import ClusterAPIService
-from services.infrastructure_provisioner import InfrastructureProvisioner
+from src.models.organization import Organization, User, AuditLog
+from src.services.auth_service import require_auth, require_role, require_organization_access
+from src.services.organization_service import OrganizationService
+from src.services.cluster_api_service import ClusterAPIService
+from src.services.infrastructure_provisioner import InfrastructureProvisioner
 from datetime import datetime, timedelta
 import uuid
 import json

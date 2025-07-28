@@ -4,8 +4,8 @@ Handles login, registration, user management, and organization operations
 """
 
 from flask import Blueprint, request, jsonify
-from services.auth_service import AuthService, require_auth, require_role, require_organization_access
-from models.organization import UserRole, UserStatus
+from src.services.auth_service import AuthService, require_auth, require_role, require_organization_access
+from src.models.organization import UserRole, UserStatus
 import uuid
 
 auth_bp = Blueprint('auth', __name__)

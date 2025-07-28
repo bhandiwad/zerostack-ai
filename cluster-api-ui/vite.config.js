@@ -5,7 +5,13 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(),tailwindcss()],
+  plugins: [react(), tailwindcss()],
+  server: {
+    host: '0.0.0.0', // Listen on all network interfaces
+    port: 5173,
+    strictPort: true,
+    open: '/', // Open the browser on server start
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
