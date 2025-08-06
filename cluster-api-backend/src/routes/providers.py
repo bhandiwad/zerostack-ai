@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from src.models.cluster import db, ProviderFlavor, CloudAccount
+from src.extensions import db
+from src.models.cluster import ProviderFlavor, CloudAccount
 from src.services.cluster_api_service import cluster_api_service
 import json
 import asyncio

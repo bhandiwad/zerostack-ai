@@ -2,18 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Box, Button, Card, CardContent, Typography, Grid, Tabs, Tab, Switch, 
-  TextField, Divider, CircularProgress, Alert, Breadcrumbs, Link, Paper
+  TextField, Divider, CircularProgress, Alert, Breadcrumbs, Link
 } from '@mui/material';
 import { 
   Home as HomeIcon, 
-  Storage as ClusterIcon,
   Build as MaintenanceIcon,
   Settings as SettingsIcon,
   Delete as DeleteIcon,
-  ArrowBack as ArrowBackIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-  CheckCircle as CheckCircleIcon
+  Warning as WarningIcon
 } from '@mui/icons-material';
 import './styles.css';
 

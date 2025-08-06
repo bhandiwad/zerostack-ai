@@ -8,7 +8,6 @@ import {
   LinearProgress,
   Chip,
   IconButton,
-  Paper,
   List,
   ListItem,
   ListItemText,
@@ -18,7 +17,6 @@ import {
 import {
   TrendingUp as TrendingUpIcon,
   Storage as StorageIcon,
-  Computer as ComputerIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
@@ -249,7 +247,7 @@ const Dashboard = () => {
                 </IconButton>
               </Box>
               <List>
-                {recentClusters.map((cluster, index) => (
+                {recentClusters.map((cluster) => (
                   <ListItem
                     key={cluster.name}
                     sx={{
@@ -308,9 +306,9 @@ const Dashboard = () => {
                 Recent Alerts
               </Typography>
               <List>
-                {alerts.map((alert, index) => (
+                {alerts.map((alert) => (
                   <ListItem
-                    key={index}
+                    key={alert.message}
                     sx={{
                       borderRadius: 2,
                       mb: 1,

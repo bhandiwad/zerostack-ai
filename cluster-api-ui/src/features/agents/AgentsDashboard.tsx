@@ -11,8 +11,6 @@ import {
   useMediaQuery,
   CircularProgress,
   Alert,
-  Button,
-  styled,
   Chip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
@@ -21,21 +19,19 @@ import {
   Chat as ChatIcon,
   Settings as SettingsIcon,
   Close as CloseIcon,
-  Menu as MenuIcon,
 } from '@mui/icons-material';
-import { useAgents } from './context/AgentContext';
+import { useAgents } from './hooks/useAgents';
 import AgentCard from './components/AgentCard';
 import AgentChat from './components/AgentChat';
-import AgentConfig from './components/AgentConfig';
 import { Agent, AgentCapability } from './types';
 import AgentCapabilities from './components/AgentCapabilities';
-import { useNavigate } from 'react-router-dom';
+
 
 const AgentsDashboard: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
-  const navigate = useNavigate();
+
   const { 
     agents, 
     loading, 
@@ -49,8 +45,7 @@ const AgentsDashboard: React.FC = () => {
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [selectedAgentForCapabilities, setSelectedAgentForCapabilities] = useState<Agent | null>(null);
-  const [selectedCapability, setSelectedCapability] = useState<AgentCapability | null>(null);
-  const [showConfigDrawer, setShowConfigDrawer] = useState(false);
+
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -65,40 +60,18 @@ const AgentsDashboard: React.FC = () => {
 
   const handleAgentCapabilities = (agent: Agent) => {
     setSelectedAgentForCapabilities(agent);
+    
     setActiveTab(2); // Switch to capabilities tab
     if (isMobile) {
       setMobileChatOpen(false);
     }
   };
 
-  const handleConfigureCapability = (capability: AgentCapability) => {
-    setSelectedCapability(capability);
-    setShowConfigDrawer(true);
-  };
 
-  const handleSaveConfig = async (config: any) => {
-    try {
-      // In a real app, this would save the config to the backend
-      console.log('Saving config:', config);
-      // Update the agent's config in the UI
-      if (selectedAgentForCapabilities) {
-        // This is a simplified example - in a real app, you would update the agent's config in your state
-        console.log(`Updated config for agent ${selectedAgentForCapabilities.name}`, config);
-      }
-      setShowConfigDrawer(false);
-    } catch (error) {
-      console.error('Failed to save config:', error);
-    }
-  };
-
-  const handleRefreshConfig = async () => {
-    // In a real app, this would refresh the config from the backend
-    console.log('Refreshing config...');
-  };
 
   const handleAgentChat = async (agentId: string) => {
     try {
-      const agent = agents.find(a => a.id === agentId);
+      const agent = agents.find((a: Agent) => a.id === agentId);
       if (!agent) return;
       
       setSelectedAgent(agent);
@@ -109,7 +82,6 @@ const AgentsDashboard: React.FC = () => {
         setActiveTab(1);
       }
       
-      // If no current conversation exists, create one
       if (!currentConversation || currentConversation.agentId !== agentId) {
         const conversation = await createConversation(agentId, `Chat with ${agent.name}`);
         if (conversation) {
@@ -121,137 +93,72 @@ const AgentsDashboard: React.FC = () => {
     }
   };
 
-  const handleCloseMobileChat = () => {
+    const handleCloseMobileChat = () => {
     setMobileChatOpen(false);
+  };
+
+  const handleConfigureCapability = (capability: AgentCapability) => {
+    // Placeholder for future implementation
+    console.log('Configuring capability:', capability);
   };
 
   const handleAgentAction = async (agentId: string) => {
     try {
-      const agent = agents.find(a => a.id === agentId);
+      const agent = agents.find((a: Agent) => a.id === agentId);
       if (!agent) return;
-      
-      // Toggle agent active status
-      const updatedAgent = {
-        ...agent,
-        status: {
-          ...agent.status,
-          isActive: !agent.status.isActive,
-          lastPing: new Date()
-        }
-      };
-      
-      // In a real app, this would be an API call to update the agent status
-      console.log(`Agent ${agentId} ${updatedAgent.status.isActive ? 'activated' : 'deactivated'}`);
-      
-      // Update local state
-      const updatedAgents = agents.map(a => 
-        a.id === agentId ? updatedAgent : a
-      );
-      
-      // This would be handled by the context in a real app
-      // For now, we'll just log it
-      console.log('Updated agents:', updatedAgents);
-      
-    } catch (error) {
-      console.error('Error toggling agent status:', error);
+
+      console.log(`Toggling status for agent: ${agent.name}`);
+      // Here you would typically call a service to update the agent's status
+      // For now, we'll just log it.
+    } catch (err) {
+      console.error('Error toggling agent status:', err);
     }
   };
+
+
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 0:
         return (
-          <Box p={2}>
-            <Typography variant="h5" gutterBottom>
-              All Agents
-            </Typography>
-            {loading ? (
-              <Box display="flex" justifyContent="center" p={4}>
-                <CircularProgress />
-              </Box>
-            ) : error ? (
-              <Alert 
-                severity="error"
-                action={
-                  <Button 
-                    color="inherit" 
-                    size="small" 
-                    onClick={() => window.location.reload()}
-                  >
-                    Retry
-                  </Button>
-                }
-              >
-                {error.toString()}
-              </Alert>
-            ) : agents.length > 0 ? (
-              <Box 
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: '1fr',
-                    sm: 'repeat(2, 1fr)',
-                    md: 'repeat(3, 1fr)'
-                  },
-                  gap: 3,
-                  width: '100%'
-                }}
-              >
-                {agents.map((agent) => (
-                  <Box 
-                    key={agent.id}
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'stretch'
-                    }}
-                  >
-                    <AgentCard
-                      agent={agent}
-                      onChat={() => handleAgentChat(agent.id)}
-                      onSelect={() => handleAgentSelect(agent)}
-                      isSelected={selectedAgent?.id === agent.id}
-                    />
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Alert severity="info">No agents found. Create an agent to get started.</Alert>
-            )}
-          </Box>
+                    <Grid container spacing={3}>
+            {agents.map((agent: Agent) => (
+              <Grid item xs={12} sm={6} md={4} key={agent.id}>
+                <AgentCard
+                  agent={agent}
+                  onSelect={() => handleAgentSelect(agent)}
+                  onChat={() => handleAgentChat(agent.id)}
+                  onActivate={() => handleAgentAction(agent.id)}
+                  onCapabilities={() => handleAgentCapabilities(agent)}
+                />
+              </Grid>
+            ))}
+          </Grid>
         );
       case 1:
         return (
-          <Box p={2}>
-            <Typography variant="h5" gutterBottom>
-              Agent Chat
-            </Typography>
+          <Box sx={{ height: '65vh', minHeight: '400px' }}>
             {selectedAgent ? (
               <AgentChat agent={selectedAgent} />
             ) : (
-              <Alert severity="info">
-                Select an agent from the list to start chatting
-              </Alert>
+              <Alert severity="info">Select an agent to start a chat</Alert>
             )}
           </Box>
         );
       case 2:
         return (
-          <Box p={2}>
-            <Typography variant="h5" gutterBottom>
-              Agent Capabilities
-            </Typography>
+          <Box>
             {selectedAgentForCapabilities ? (
               <Box>
-                <Box mb={3}>
-                  <Typography variant="h5" gutterBottom>
-                    {selectedAgentForCapabilities.name}'s Capabilities
+                <Box mb={2}>
+                  <Typography variant="h6">
+                    {selectedAgentForCapabilities.name}&apos;s Capabilities
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Manage and configure the capabilities available to this agent.
                   </Typography>
                 </Box>
-                <AgentCapabilities 
+                                <AgentCapabilities 
                   agentId={selectedAgentForCapabilities.id} 
                   onConfigureCapability={handleConfigureCapability}
                 />

@@ -7,48 +7,38 @@ import {
   Box, 
   IconButton, 
   Tooltip,
-  CardActionArea,
   CardActions,
   Button,
-  Avatar,
   alpha,
   useTheme,
-  Skeleton,
   Snackbar,
-  Alert,
-  CircularProgress
+  Alert
 } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Storage as ClusterIcon, 
   Security as SecurityIcon, 
   Speed as SpeedIcon, 
   Chat as ChatIcon,
   PowerSettingsNew as PowerIcon,
-  Settings as SettingsIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
-  Error as ErrorIcon,
-  Refresh as RefreshIcon
+  Error as ErrorIcon
 } from '@mui/icons-material';
 import { Agent, AgentCapability } from '../types';
-import { agentService } from '../services/AgentService';
-
-// Define a type that can represent either a string or AgentCapability object
-type CapabilityItem = string | AgentCapability;
+import { AgentCapabilitiesModal } from './AgentCapabilitiesModal';
+import { useAgentContext } from '../context/AgentContext';
 
 interface AgentCardProps {
   agent: Agent;
   onActivate?: (agentId: string) => void;
-  onChat?: (agentId: string) => void;
-  onConfigure?: (agentId: string) => void;
-  onSelect?: (agent: Agent) => void;
+    onChat?: (agentId: string) => void;
   onCapabilities?: (agent: Agent) => void;
+  onSelect?: (agent: Agent) => void;
   isSelected?: boolean;
   className?: string;
 }
 
-// Animation variants for the card
 const cardVariants = {
   initial: { y: 0, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
   hover: { 
@@ -62,7 +52,6 @@ const cardVariants = {
   }
 };
 
-// Status color mapping
 const statusColors = {
   healthy: 'success.main',
   degraded: 'warning.main',
@@ -70,62 +59,34 @@ const statusColors = {
   unknown: 'text.secondary'
 } as const;
 
-const AgentCard: React.FC<AgentCardProps> = ({ 
+const AgentCard: React.FC<AgentCardProps> = ({
   agent, 
   onActivate, 
   onChat, 
-  onConfigure,
   onSelect,
   onCapabilities,
   isSelected = false,
   className 
 }) => {
   const theme = useTheme();
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const { loadAvailableCapabilities } = useAgentContext();
+  const [isCapabilitiesModalOpen, setCapabilitiesModalOpen] = useState(false);
 
-  const handleRefresh = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Here you would typically refresh the agent data
-      // For example: const updatedAgent = await agentService.getAgent(agent.id);
-      setSuccess('Agent data refreshed successfully');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to refresh agent data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  React.useEffect(() => {
+    loadAvailableCapabilities();
+  }, [loadAvailableCapabilities]);
 
   const handleToggleStatus = async () => {
     try {
-      setIsLoading(true);
       setError(null);
-      
-      // Get the current active status, defaulting to false if undefined
-      const currentStatus = agent.status?.isActive ?? false;
+            const currentStatus = typeof agent.status === 'object' ? agent.status.isActive : false;
       const newStatus = !currentStatus;
-      
-      // Here you would typically update the agent status
-      // For example: 
-      // await agentService.updateAgent(agent.id, { 
-      //   ...agent, 
-      //   status: { 
-      //     ...agent.status, 
-      //     isActive: newStatus 
-      //   } 
-      // });
-      
       setSuccess(`Agent ${newStatus ? 'activated' : 'deactivated'} successfully`);
-      
-      // Refresh the agent list or update the specific agent
       if (onActivate) onActivate(agent.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update agent status');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -137,58 +98,56 @@ const AgentCard: React.FC<AgentCardProps> = ({
     setSuccess(null);
   };
 
-  // Define a type for the health status
   type HealthStatus = 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
 
-  // Get agent health status with proper typing
-  const getAgentHealth = (): HealthStatus => {
-    if (!agent.status || !agent.status.health) return 'unknown';
-    
-    // Convert to lowercase and ensure it's a valid health status
-    const health = agent.status.health.toLowerCase() as HealthStatus;
-    return ['healthy', 'degraded', 'unhealthy', 'unknown'].includes(health) 
-      ? health 
-      : 'unknown';
+    const getAgentHealth = (): HealthStatus => {
+    if (typeof agent.status !== 'object' || !agent.status) {
+      return 'unknown';
+    }
+
+    const healthValue: string = agent.status.health || 'unknown';
+
+    const lastPing = agent.status.lastPing ? new Date(agent.status.lastPing).getTime() : 0;
+    const isConnected = (Date.now() - lastPing) < 300000; // 5 minutes
+
+    if (!isConnected) return 'unhealthy';
+    if (healthValue === 'unknown' && isConnected) return 'healthy';
+
+    if (['healthy', 'degraded', 'unhealthy'].includes(healthValue)) {
+      return healthValue as HealthStatus;
+    }
+
+    return 'unknown';
   };
 
   const healthStatus = getAgentHealth();
   const statusColor = statusColors[healthStatus] || 'default';
-  const isActive = agent.status?.isActive !== false;
-  const lastPing = agent.status?.lastPing 
-    ? new Date(agent.status.lastPing).toLocaleTimeString() 
-    : 'Never';
+    const isActive = typeof agent.status === 'object' ? agent.status.isActive : false;
 
-  const getStatusIcon = () => {
+  const getStatusIcon = (health: HealthStatus) => {
     switch (health) {
-      case 'healthy':
-        return <CheckCircleIcon color="success" fontSize="small" />;
-      case 'degraded':
-        return <WarningIcon color="warning" fontSize="small" />;
-      case 'unhealthy':
-        return <ErrorIcon color="error" fontSize="small" />;
-      default:
-        return <ErrorIcon color="disabled" fontSize="small" />;
+      case 'healthy': return <CheckCircleIcon color="success" fontSize="small" />;
+      case 'degraded': return <WarningIcon color="warning" fontSize="small" />;
+      case 'unhealthy': return <ErrorIcon color="error" fontSize="small" />;
+      default: return <ErrorIcon color="disabled" fontSize="small" />;
     }
   };
 
-  const getAgentType = (): string => {
-    // Safely get agent type with fallbacks
-    return agent.metadata?.type || 'monitoring'; // Default type
+    const getAgentType = (): string => {
+    if (typeof agent.metadata?.type === 'string' && agent.metadata.type) {
+      return agent.metadata.type;
+    }
+    return 'monitoring';
   };
 
   const getAgentIcon = () => {
-    // Safely get agent type with a default value
     const agentType = getAgentType();
     const normalizedType = String(agentType).toLowerCase();
     switch (normalizedType) {
-      case 'monitoring':
-        return <SpeedIcon color="primary" />;
-      case 'security':
-        return <SecurityIcon color="secondary" />;
-      case 'cluster':
-        return <ClusterIcon color="info" />;
-      default:
-        return <SpeedIcon color="action" />;
+      case 'monitoring': return <SpeedIcon color="primary" />;
+      case 'security': return <SecurityIcon color="secondary" />;
+      case 'cluster': return <ClusterIcon color="info" />;
+      default: return <SpeedIcon color="action" />;
     }
   };
 
@@ -201,332 +160,238 @@ const AgentCard: React.FC<AgentCardProps> = ({
     onChat?.(agent.id);
   };
 
-  const handleCapabilitiesClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onCapabilities?.(agent);
-  };
-
   const handleActivateClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     handleToggleStatus();
   };
 
   return (
-    <motion.div
-      initial="initial"
-      whileHover="hover"
-      animate={isSelected ? "selected" : "initial"}
-      variants={cardVariants}
-      className={className}
-      style={{ height: '100%' }}
-    >
-      <Card 
+    <>
+      <motion.div
+        initial="initial"
+        whileHover="hover"
+        animate={isSelected ? "selected" : "initial"}
+        variants={cardVariants}
         className={className}
         onClick={handleCardClick}
-        sx={{ 
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'all 0.2s ease-in-out',
-          border: isSelected 
-            ? `2px solid ${theme.palette.primary.main}` 
-            : `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-          backgroundColor: isSelected 
-            ? alpha(theme.palette.primary.light, 0.05)
-            : theme.palette.background.paper,
-          overflow: 'hidden',
+        style={{
+          border: isSelected ? `2px solid ${theme.palette.primary.main}` : `2px solid transparent`,
+          borderRadius: '16px',
           cursor: 'pointer',
-          '&:hover': {
-            borderColor: theme.palette.primary.main,
-          },
+          height: '100%'
         }}
       >
-        {/* Status indicator bar */}
-        <Box 
-          sx={{ 
-            height: 4,
-            width: '100%',
-            backgroundColor: statusColor,
-            opacity: isActive ? 1 : 0.6
-          }}
-        />
-        
-        <CardContent sx={{ 
-          flexGrow: 1, 
-          width: '100%',
-          p: 2,
-          '&:last-child': {
-            pb: 2
-          }
+        <Card sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          borderRadius: '14px',
+          overflow: 'hidden',
+          bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.05) : 'background.paper',
         }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-          <Box display="flex" alignItems="center" gap={1.5} width="100%">
-            <Avatar 
-              sx={{ 
-                bgcolor: theme.palette.primary.main,
-                color: theme.palette.primary.contrastText,
-                width: 40,
-                height: 40,
-                fontSize: '1rem',
-                fontWeight: 500
-              }}
-            >
-              {agent.name.charAt(0).toUpperCase()}
-            </Avatar>
-            
-            <Box flex={1} minWidth={0}>
-              <Typography 
-                variant="subtitle1" 
-                component="div" 
-                fontWeight={600}
-                noWrap
-                sx={{
-                  textOverflow: 'ellipsis',
-                  overflow: 'hidden',
-              }}
-              >
-                {agent.name}
-              </Typography>
-              
-              <Box display="flex" alignItems="center" gap={1} mt={0.5}>
-                <Box
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    bgcolor: statusColor,
-                    opacity: isActive ? 1 : 0.5
-                  }}
-                />
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary"
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    textTransform: 'capitalize',
-                    '& svg': {
-                      fontSize: '0.9em'
-                    }
-                  }}
-                >
-                  {getStatusIcon()}
-                  {health}
+          <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+            <Box display="flex" alignItems="center" mb={2}>
+              {getAgentIcon()}
+              <Box ml={2} flexGrow={1}>
+                <Typography variant="h6" component="div" fontWeight="600" noWrap>
+                  {agent.name}
                 </Typography>
-                
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary"
-                  sx={{
-                    '&:before': {
-                      content: '"•"',
-                      mx: 0.5,
-                      color: 'text.disabled'
-                    }
-                  }}
-                >
+                <Typography variant="body2" color="text.secondary" noWrap>
                   {getAgentType()}
                 </Typography>
               </Box>
+              <Tooltip title={healthStatus} arrow>
+                <IconButton size="small" sx={{ color: statusColor }}>
+                  {getStatusIcon(healthStatus)}
+                </IconButton>
+              </Tooltip>
             </Box>
-          </Box>
-        </Box>
 
-        <Typography 
-          variant="body2" 
-          color="text.secondary" 
-          paragraph 
-          sx={{
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            minHeight: 60,
-            mb: 2
-          }}
-        >
-          {agent.description || 'No description available'}
-        </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1, minHeight: '40px' }}>
+              {agent.description || 'No description available.'}
+            </Typography>
 
-        {Array.isArray(agent.capabilities) && agent.capabilities.length > 0 ? (
-          <Box 
-            display="flex" 
-            flexWrap="wrap" 
-            gap={1} 
-            mt="auto"
-            pt={1}
-            sx={{
-              borderTop: `1px solid ${theme.palette.divider}`,
-              '& .MuiChip-root': {
-                fontSize: '0.65rem',
-                height: 20,
-                '& .MuiChip-label': {
-                  px: 0.75,
-                }
+            <Box mt="auto">
+              <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                Capabilities
+              </Typography>
+              {agent.capabilities && agent.capabilities.length > 0 ? (
+                  <Box
+                      display="flex"
+                      flexWrap="wrap"
+                      gap={0.5}
+                      sx={{ 
+                          borderTop: `1px solid ${theme.palette.divider}`,
+                          pt: 1
+                      }}
+                  >
+                      {agent.capabilities.slice(0, 3).map((capability: AgentCapability) => (
+                          <Chip
+                              key={capability.name}
+                              label={capability.name}
+                              size="small"
+                              variant="outlined"
+                              sx={{ 
+                                  fontSize: '0.7rem',
+                                  color: 'text.secondary',
+                                  borderColor: 'divider',
+                              }}
+                          />
+                      ))}
+                      {agent.capabilities.length > 3 && (
+                          <Chip
+                              label={`+${agent.capabilities.length - 3}`}
+                              size="small"
+                              sx={{
+                                  fontSize: '0.7rem',
+                                  color: 'text.secondary',
+                                  border: 'none',
+                              }}
+                          />
+                      )}
+                  </Box>
+              ) : (
+                  <Box
+                      height={24}
+                      display="flex"
+                      alignItems="center"
+                      color="text.disabled"
+                      fontSize="0.75rem"
+                      mt="auto"
+                      pt={1}
+                      sx={{
+                          borderTop: `1px solid ${theme.palette.divider}`,
+                      }}
+                  >
+                      No capabilities
+                  </Box>
+              )}
+            </Box>
+          </CardContent>
+
+          <CardActions sx={{ 
+            p: theme => theme.spacing(0, 1.5, 1.5, 1.5),
+            mt: 'auto',
+            justifyContent: 'space-between',
+            gap: 1,
+            '& .MuiButton-root': {
+              minWidth: 'auto',
+              padding: theme => theme.spacing(0.5, 1),
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              textTransform: 'none',
+              letterSpacing: 0.5,
+              '& .MuiSvgIcon-root': {
+                fontSize: '1rem',
+                mr: 0.5,
               }
-            }}
-          >
-            {agent.capabilities.slice(0, 3).map((capability, index) => {
-              const capabilityName = typeof capability === 'string' 
-                ? capability 
-                : capability?.name || 'Unnamed';
-              const capabilityId = typeof capability === 'string' 
-                ? capability 
-                : capability?.id || `capability-${index}`;
-              
-              return (
-                <Chip 
-                  key={capabilityId}
-                  label={capabilityName}
-                  size="small" 
+            }
+          }}>
+            <Box display="flex" gap={0.5}>
+              <Tooltip title="Chat with agent">
+                <Button
+                  size="small"
                   variant="outlined"
+                  color="primary"
+                  onClick={handleChatClick}
+                  startIcon={<ChatIcon fontSize="inherit" />}
                   sx={{
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.primary.dark,
-                    border: 'none',
+                    borderColor: 'divider',
                     '&:hover': {
-                      bgcolor: alpha(theme.palette.primary.main, 0.15),
+                      borderColor: 'primary.main',
+                      bgcolor: alpha(theme.palette.primary.main, 0.04),
                     }
                   }}
-                />
-              );
-            })}
-            {agent.capabilities.length > 3 && (
-              <Chip 
-                label={`+${agent.capabilities.length - 3}`} 
-                size="small"
-                variant="outlined"
+                >
+                  Chat
+                </Button>
+              </Tooltip>
+              
+              <Tooltip title="Configure agent">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onCapabilities) {
+                      onCapabilities(agent);
+                    } else {
+                      setCapabilitiesModalOpen(true);
+                    }
+                  }}
+                  sx={{
+                    borderColor: 'divider',
+                    color: 'text.secondary',
+                    '&:hover': {
+                      borderColor: 'text.primary',
+                      bgcolor: 'action.hover',
+                    }
+                  }}
+                >
+                  Configure
+                </Button>
+              </Tooltip>
+            </Box>
+            
+            <Tooltip 
+              title={isActive ? 'Deactivate agent' : 'Activate agent'}
+              arrow
+            >
+              <IconButton 
+                size="small" 
+                onClick={handleActivateClick}
                 sx={{
-                  bgcolor: 'action.hover',
-                  color: 'text.secondary',
-                  border: 'none',
+                  bgcolor: isActive 
+                    ? alpha(theme.palette.success.main, 0.1) 
+                    : 'action.hover',
+                  color: isActive 
+                    ? theme.palette.success.main 
+                    : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: isActive 
+                      ? alpha(theme.palette.error.main, 0.1)
+                      : alpha(theme.palette.success.main, 0.2),
+                    color: isActive 
+                      ? theme.palette.error.main 
+                      : theme.palette.success.main,
+                  },
+                  transition: 'all 0.2s ease-in-out',
+                  p: 1,
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.1rem',
+                    m: 0,
+                  }
                 }}
-              />
-            )}
-          </Box>
-        ) : (
-          <Box 
-            height={24} 
-            display="flex" 
-            alignItems="center"
-            color="text.disabled"
-            fontSize="0.75rem"
-            mt="auto"
-            pt={1}
-            sx={{
-              borderTop: `1px solid ${theme.palette.divider}`,
-            }}
-          >
-            No capabilities
-          </Box>
-        )}
-      </CardContent>
-
-      <CardActions sx={{ 
-        p: theme => theme.spacing(0, 1.5, 1.5, 1.5),
-        mt: 'auto',
-        justifyContent: 'space-between',
-        gap: 1,
-        '& .MuiButton-root': {
-          minWidth: 'auto',
-          padding: theme => theme.spacing(0.5, 1),
-          fontSize: '0.7rem',
-          fontWeight: 500,
-          textTransform: 'none',
-          letterSpacing: 0.5,
-          '& .MuiSvgIcon-root': {
-            fontSize: '1rem',
-            mr: 0.5,
-          }
-        }
-      }}>
-        <Box display="flex" gap={0.5}>
-          <Tooltip title="Chat with agent">
-            <Button
-              size="small"
-              variant="outlined"
-              color="primary"
-              onClick={handleChatClick}
-              startIcon={<ChatIcon fontSize="inherit" />}
-              sx={{
-                borderColor: 'divider',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  bgcolor: alpha(theme.palette.primary.main, 0.04),
-                }
-              }}
-            >
-              Chat
-            </Button>
-          </Tooltip>
-          
-          <Tooltip title="Configure agent">
-            <Button
-              size="small"
-              variant="outlined"
-              color="inherit"
-              onClick={(e) => {
-                e.stopPropagation();
-                onConfigure?.(agent.id);
-              }}
-              sx={{
-                borderColor: 'divider',
-                color: 'text.secondary',
-                '&:hover': {
-                  borderColor: 'text.primary',
-                  bgcolor: 'action.hover',
-                }
-              }}
-            >
-              Configure
-            </Button>
-          </Tooltip>
-        </Box>
-        
-        <Tooltip 
-          title={isActive ? 'Deactivate agent' : 'Activate agent'}
-          arrow
-        >
-          <IconButton 
-            size="small" 
-            onClick={handleActivateClick}
-            sx={{
-              bgcolor: isActive 
-                ? alpha(theme.palette.success.main, 0.1) 
-                : 'action.hover',
-              color: isActive 
-                ? theme.palette.success.main 
-                : 'text.secondary',
-              '&:hover': {
-                bgcolor: isActive 
-                  ? alpha(theme.palette.error.main, 0.1)
-                  : alpha(theme.palette.success.main, 0.2),
-                color: isActive 
-                  ? theme.palette.error.main 
-                  : theme.palette.success.main,
-              },
-              transition: 'all 0.2s ease-in-out',
-              p: 1,
-              '& .MuiSvgIcon-root': {
-                fontSize: '1.1rem',
-                m: 0,
-              }
-            }}
-          >
-            <PowerIcon 
-              fontSize="inherit" 
-              sx={{
-                transition: 'transform 0.3s ease-in-out',
-                transform: isActive ? 'none' : 'rotate(180deg)',
-              }}
-            />
-          </IconButton>
-        </Tooltip>
-      </CardActions>
-      </Card>
-    </motion.div>
+              >
+                <PowerIcon 
+                  fontSize="inherit" 
+                  sx={{
+                    transition: 'transform 0.3s ease-in-out',
+                    transform: isActive ? 'none' : 'rotate(180deg)',
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
+          </CardActions>
+        </Card>
+      </motion.div>
+      <AgentCapabilitiesModal
+        agent={agent}
+        open={isCapabilitiesModalOpen}
+        onClose={() => setCapabilitiesModalOpen(false)}
+      />
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={handleErrorClose}>
+        <Alert onClose={handleErrorClose} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+      <Snackbar open={!!success} autoHideDuration={6000} onClose={handleSuccessClose}>
+        <Alert onClose={handleSuccessClose} severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

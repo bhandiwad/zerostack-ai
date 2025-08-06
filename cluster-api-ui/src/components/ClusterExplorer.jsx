@@ -84,7 +84,7 @@ const ClusterExplorer = ({ cluster, apiCall, showNotification }) => {
   };
 
   const handleDeleteResource = async (resource) => {
-    if (!window.confirm(`Are you sure you want to delete ${resourceType.slice(0, -1)} "${resource.name}"?`)) {
+        if (!window.confirm(`Are you sure you want to delete ${resourceType.slice(0, -1)} '${resource.name}'?`)) {
       return;
     }
 
@@ -236,7 +236,7 @@ const ClusterExplorer = ({ cluster, apiCall, showNotification }) => {
           ) : filteredResources.length === 0 ? (
             <div className="empty-state">
               <h3>No {resourceType} found</h3>
-              <p>No {resourceType} found in namespace "{selectedNamespace}"</p>
+                            <p>No {resourceType} found in namespace &quot;{selectedNamespace}&quot;</p>
             </div>
           ) : (
             <div className="resource-grid">

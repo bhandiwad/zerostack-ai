@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAIAgentContext } from '../context/AIAgentProvider';
-import { AgentType, AIAgentConfig, createAIAgent } from '../ai/aiAgents';
+import { AgentType, createAIAgent, AIAgentConfig } from '../ai/aiAgents';
 import {
   Box,
   Button,
@@ -17,8 +17,6 @@ import {
   FormHelperText,
   Typography,
   Paper,
-  Grid,
-  Divider,
   IconButton,
   Tooltip,
   CircularProgress,
@@ -27,9 +25,8 @@ import {
   Close as CloseIcon,
   Info as InfoIcon,
   Save as SaveIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
 } from '@mui/icons-material';
+import { AgentInstance } from '../ai/agentOrchestrator';
 
 interface AIAgentFormProps {
   open: boolean;
@@ -37,20 +34,33 @@ interface AIAgentFormProps {
   agentId?: string;
 }
 
+// Use a type that represents the form's data structure
+interface AgentFormData {
+  name: string;
+  description: string;
+  type: AgentType;
+  config: {
+    model: string;
+    temperature: number;
+    maxTokens: number;
+  };
+}
+
 const AIAgentForm: React.FC<AIAgentFormProps> = ({ open, onClose, agentId }) => {
-  const { agents, createAgent, updateAgent, loading } = useAIAgentContext();
-  
-  const [formData, setFormData] = useState<Partial<AIAgentConfig>>({
-    type: AgentType.MONITORING,
+  const { agents, createAgent, updateAgent, loading, loadAgents } = useAIAgentContext();
+
+  const getInitialFormData = (): AgentFormData => ({
     name: '',
     description: '',
+    type: AgentType.MONITORING,
     config: {
       model: 'gpt-4',
       temperature: 0.7,
       maxTokens: 1000,
     },
   });
-  
+
+  const [formData, setFormData] = useState<AgentFormData>(getInitialFormData());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const isEditMode = !!agentId;
 
@@ -59,54 +69,35 @@ const AIAgentForm: React.FC<AIAgentFormProps> = ({ open, onClose, agentId }) => 
       const agent = agents.find(a => a.id === agentId);
       if (agent) {
         setFormData({
-          type: agent.type as AgentType,
           name: agent.name,
-          description: agent.config.description,
+          description: agent.description,
+          type: agent.type,
           config: {
-            ...agent.config,
+            ...getInitialFormData().config,
+            ...agent.config.config,
           },
         });
       }
     } else {
-      // Reset form for new agent
-      setFormData({
-        type: AgentType.MONITORING,
-        name: '',
-        description: '',
-        config: {
-          model: 'gpt-4',
-          temperature: 0.7,
-          maxTokens: 1000,
-        },
-      });
+      setFormData(getInitialFormData());
     }
   }, [agentId, isEditMode, agents]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    
-    // Clear error when field is edited
+    setFormData((prev: AgentFormData) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: '',
-      }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev: AgentFormData) => ({
       ...prev,
       config: {
         ...prev.config,
-        [name]: name === 'temperature' || name === 'maxTokens' 
-          ? parseFloat(value) || 0 
-          : value,
+        [name]: name === 'temperature' || name === 'maxTokens' ? parseFloat(value) || 0 : value,
       },
     }));
   };
@@ -114,202 +105,175 @@ const AIAgentForm: React.FC<AIAgentFormProps> = ({ open, onClose, agentId }) => 
   const handleTypeChange = (e: SelectChangeEvent<AgentType>) => {
     const type = e.target.value as AgentType;
     const defaultConfig = createAIAgent(type);
-    
-    setFormData(prev => ({
+    setFormData((prev: AgentFormData) => ({
       ...prev,
       type,
       description: defaultConfig.description,
       config: {
+        ...prev.config,
         ...defaultConfig.config,
-        ...prev.config, // Keep any existing config overrides
       },
     }));
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.name?.trim()) {
-      newErrors.name = 'Name is required';
-    }
-    
-    if (!formData.description?.trim()) {
-      newErrors.description = 'Description is required';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
+
+    const validationErrors: Record<string, string> = {};
+    if (!formData.name) validationErrors.name = 'Name is required';
+    if (!formData.description) validationErrors.description = 'Description is required';
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
-    
+
     try {
       if (isEditMode && agentId) {
-        await updateAgent(agentId, {
-          name: formData.name || '',
+        const payload: Partial<AgentInstance> = {
+          name: formData.name,
+          description: formData.description,
+          type: formData.type,
           config: {
-            ...formData.config,
-            description: formData.description || '',
+            ...createAIAgent(formData.type),
+            ...formData,
+            config: formData.config,
           },
-        });
+        };
+        await updateAgent(agentId, payload);
       } else {
-        await createAgent(formData.type || AgentType.MONITORING, {
-          name: formData.name || '',
-          description: formData.description || '',
+        const agentData: AIAgentConfig = {
+          ...createAIAgent(formData.type),
+          name: formData.name,
+          description: formData.description,
+          type: formData.type,
           config: formData.config,
-        });
+        };
+        await createAgent(formData.type, agentData);
       }
-      
+
+      await loadAgents();
       onClose();
     } catch (error) {
-      console.error('Error saving agent:', error);
-      // Error handling would be handled by the context
+      console.error('Failed to save agent:', error);
+      setErrors({ form: error instanceof Error ? error.message : 'An unknown error occurred' });
     }
   };
-
-  const agentTypeOptions = Object.values(AgentType).map(type => ({
-    value: type,
-    label: type.charAt(0).toUpperCase() + type.slice(1),
-  }));
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        {isEditMode ? 'Edit AI Agent' : 'Create New AI Agent'}
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
       <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            {isEditMode ? 'Edit Agent' : 'Create New Agent'}
-            <IconButton onClick={onClose} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        
         <DialogContent dividers>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <FormControl fullWidth margin="normal" error={!!errors.type}>
-                <InputLabel id="agent-type-label">Agent Type</InputLabel>
-                <Select
-                  labelId="agent-type-label"
-                  id="type"
-                  name="type"
-                  value={formData.type || ''}
-                  onChange={handleTypeChange}
-                  label="Agent Type"
-                  disabled={isEditMode}
+          {errors.form && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {errors.form}
+            </Typography>
+          )}
+          <Box display="flex" flexDirection="column" gap={2}>
+            <FormControl fullWidth margin="normal">
+              <InputLabel id="agent-type-label">Agent Type</InputLabel>
+              <Select
+                labelId="agent-type-label"
+                value={formData.type || ''}
+                label="Agent Type"
+                onChange={handleTypeChange}
+              >
+                {Object.values(AgentType).map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>Select the agent&apos;s primary function.</FormHelperText>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Agent Name"
+              name="name"
+              value={formData.name || ''}
+              onChange={handleChange}
+              error={!!errors.name}
+              helperText={errors.name}
+              required
+            />
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Description"
+              name="description"
+              value={formData.description || ''}
+              onChange={handleChange}
+              error={!!errors.description}
+              helperText={errors.description}
+              multiline
+              rows={3}
+              required
+            />
+
+            <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+              <Box display="flex" alignItems="center" mb={2}>
+                <Typography variant="subtitle2">Configuration</Typography>
+                <Tooltip title="Advanced configuration for the AI model">
+                  <InfoIcon fontSize="small" color="action" sx={{ ml: 1 }} />
+                </Tooltip>
+              </Box>
+
+              <Box display="flex" flexDirection="row" flexWrap="wrap" gap={2}>
+                <TextField
+                  label="Model"
+                  name="model"
+                  value={formData.config?.model || ''}
+                  onChange={handleConfigChange}
+                  select
+                  size="small"
+                  sx={{ flex: '1 1 45%' }}
                 >
-                  {agentTypeOptions.map(option => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.type && <FormHelperText>{errors.type}</FormHelperText>}
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                margin="normal"
-                label="Agent Name"
-                name="name"
-                value={formData.name || ''}
-                onChange={handleChange}
-                error={!!errors.name}
-                helperText={errors.name}
-                required
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                margin="normal"
-                label="Description"
-                name="description"
-                value={formData.description || ''}
-                onChange={handleChange}
-                error={!!errors.description}
-                helperText={errors.description}
-                multiline
-                rows={3}
-                required
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Typography variant="subtitle2">Configuration</Typography>
-                  <Tooltip title="Advanced configuration for the AI model">
-                    <InfoIcon fontSize="small" color="action" sx={{ ml: 1 }} />
-                  </Tooltip>
-                </Box>
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Model"
-                      name="model"
-                      value={formData.config?.model || ''}
-                      onChange={handleConfigChange}
-                      select
-                      size="small"
-                    >
-                      <MenuItem value="gpt-4">GPT-4</MenuItem>
-                      <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
-                      <MenuItem value="claude-2">Claude 2</MenuItem>
-                    </TextField>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Temperature"
-                      name="temperature"
-                      type="number"
-                      value={formData.config?.temperature || 0.7}
-                      onChange={handleConfigChange}
-                      inputProps={{
-                        min: 0,
-                        max: 2,
-                        step: 0.1,
-                      }}
-                      size="small"
-                      helperText="Higher values = more creative, lower = more focused"
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Max Tokens"
-                      name="maxTokens"
-                      type="number"
-                      value={formData.config?.maxTokens || 1000}
-                      onChange={handleConfigChange}
-                      inputProps={{
-                        min: 100,
-                        max: 4000,
-                        step: 100,
-                      }}
-                      size="small"
-                      helperText="Maximum length of the response"
-                    />
-                  </Grid>
-                </Grid>
-              </Paper>
-            </Grid>
-          </Grid>
+                  <MenuItem value="gpt-4">GPT-4</MenuItem>
+                  <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
+                  <MenuItem value="claude-2">Claude 2</MenuItem>
+                </TextField>
+
+                <TextField
+                  label="Temperature"
+                  name="temperature"
+                  type="number"
+                  value={formData.config?.temperature || 0.7}
+                  onChange={handleConfigChange}
+                  inputProps={{ min: 0, max: 2, step: 0.1 }}
+                  size="small"
+                  helperText="Higher values = more creative"
+                  sx={{ flex: '1 1 45%' }}
+                />
+
+                <TextField
+                  label="Max Tokens"
+                  name="maxTokens"
+                  type="number"
+                  value={formData.config?.maxTokens || 1000}
+                  onChange={handleConfigChange}
+                  inputProps={{ min: 100, max: 4000, step: 100 }}
+                  size="small"
+                  helperText="Maximum response length"
+                  sx={{ flex: '1 1 45%' }}
+                />
+              </Box>
+            </Paper>
+          </Box>
         </DialogContent>
-        
+
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose} color="inherit">
             Cancel

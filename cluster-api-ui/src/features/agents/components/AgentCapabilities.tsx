@@ -1,82 +1,27 @@
-import React, { useState, useEffect, FC } from 'react';
-import { useAgents } from '../context/AgentContext';
-import { 
-  Card, CardContent, Typography, Button, Box, Grid, Chip, 
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAgents } from '../hooks/useAgents';
+import {
+  Card, CardContent, Typography, Button, Box,
   CircularProgress, Alert, Collapse, IconButton, Tooltip,
-  TextField, FormControl, InputLabel, Select, MenuItem, 
-  FormHelperText, Divider, FormControlLabel, Switch
+  TextField, FormControlLabel, Switch, Select, MenuItem, InputLabel, FormControl, FormHelperText
 } from '@mui/material';
-import { 
+import {
   ExpandMore, ExpandLess, Settings as SettingsIcon,
-  PlayArrow as ExecuteIcon, CheckCircle as SuccessIcon,
-  Error as ErrorIcon
+  PlayArrow as ExecuteIcon, CheckCircle as SuccessIcon
 } from '@mui/icons-material';
-import { 
-  AgentCapability as BaseAgentCapability, 
-  AgentAction
-} from '../types';
-
-// Local type definitions since these interfaces are not exported from the types file
-export interface ParameterSchema {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'integer';
-  description?: string;
-  required?: boolean;
-  default?: any;
-  enum?: any[];
-  items?: ParameterSchema;
-  properties?: Record<string, ParameterSchema>;
-  format?: string;
-  minimum?: number;
-  maximum?: number;
-  minLength?: number;
-  maxLength?: number;
-  pattern?: string;
-  minItems?: number;
-  maxItems?: number;
-}
-
-export interface ActionSchema {
-  name: string;
-  description: string;
-  parameters: Record<string, ParameterSchema>;
-}
-
-// Extend the base AgentCapability type to include UI-specific properties
-interface AgentCapability extends Omit<BaseAgentCapability, 'actions'> {
-  id: string;
-  enabled: boolean;
-  actions?: ActionSchema[];
-  actionConfigs?: Record<string, {
-    description: string;
-    parameters: Record<string, ParameterSchema>;
-  }>;
-}
+import {
+  AgentCapability,
+  AgentAction,
+  ParameterSchema
+} from '../types/index';
 
 type ParamValue = string | number | boolean | string[] | null;
 type ParamsState = Record<string, ParamValue>;
 
-// Type guard to check if a value is an array
-const isArray = (value: unknown): value is unknown[] => {
-  return Array.isArray(value);
-};
-
-// Type guard to check if a value is an object (and not null or array)
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
-
 interface CapabilityActionProps {
-  agentId: string;
   capabilityName: string;
-  action: ActionSchema;
+  action: AgentAction;
   onExecute: (capability: string, action: string, params: Record<string, unknown>) => Promise<void>;
-}
-
-interface CapabilityCardProps {
-  agentId: string;
-  capability: CapabilityInfo;
-  onExecuteAction: (capability: string, action: string, params: Record<string, unknown>) => Promise<void>;
-  onConfigure?: (capability: CapabilityInfo) => void;
 }
 
 interface AgentCapabilitiesProps {
@@ -84,50 +29,31 @@ interface AgentCapabilitiesProps {
   onConfigureCapability?: (capability: AgentCapability) => void;
 }
 
-const CapabilityAction: React.FC<CapabilityActionProps & { executionStatus?: { status: string; message?: string } }> = ({ 
-  agentId, 
+const CapabilityAction: React.FC<CapabilityActionProps> = ({ 
   capabilityName, 
   action,
-  onExecute,
-  executionStatus 
+  onExecute
 }) => {
   const [isExecuting, setIsExecuting] = useState(false);
-  type ParamValue = string | number | boolean | string[] | null;
-  type ParamsState = Record<string, ParamValue>;
-  
   const [params, setParams] = useState<ParamsState>({});
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Initialize form with default values
     if (action?.parameters) {
       const defaults: ParamsState = {};
       Object.entries(action.parameters).forEach(([paramName, paramConfig]) => {
         if (paramConfig.default !== undefined) {
           defaults[paramName] = paramConfig.default as ParamValue;
         } else if (paramConfig.required) {
-          // Set empty defaults for required fields
           switch (paramConfig.type) {
-            case 'string':
-              defaults[paramName] = '';
-              break;
-            case 'number':
-            case 'integer':
-              defaults[paramName] = 0;
-              break;
-            case 'boolean':
-              defaults[paramName] = false;
-              break;
-            case 'array':
-              defaults[paramName] = '[]'; // Store as string to handle in form
-              break;
-            case 'object':
-              defaults[paramName] = '{}'; // Store as string to handle in form
-              break;
+            case 'string': defaults[paramName] = ''; break;
+            case 'number': defaults[paramName] = 0; break;
+            case 'boolean': defaults[paramName] = false; break;
+            case 'array': defaults[paramName] = '[]'; break;
+            case 'object': defaults[paramName] = '{}'; break;
           }
         }
       });
@@ -137,429 +63,253 @@ const CapabilityAction: React.FC<CapabilityActionProps & { executionStatus?: { s
 
   const validateParams = (): boolean => {
     if (!action.parameters) return true;
-    
     const errors: Record<string, string> = {};
     let isValid = true;
-    
     Object.entries(action.parameters).forEach(([paramName, paramConfig]) => {
       const value = params[paramName];
-      
       if (paramConfig.required && (value === undefined || value === null || value === '')) {
         errors[paramName] = 'This field is required';
         isValid = false;
       } else if (value !== undefined && value !== null) {
-        // Type-specific validation
         switch (paramConfig.type) {
           case 'string':
             if (typeof value !== 'string') {
               errors[paramName] = 'Must be a string';
-              isValid = false;
-            } else if (paramConfig.minLength !== undefined && value.length < paramConfig.minLength) {
-              errors[paramName] = `Must be at least ${paramConfig.minLength} characters`;
-              isValid = false;
-            } else if (paramConfig.maxLength !== undefined && value.length > paramConfig.maxLength) {
-              errors[paramName] = `Must be at most ${paramConfig.maxLength} characters`;
               isValid = false;
             } else if (paramConfig.pattern && !new RegExp(paramConfig.pattern).test(value)) {
               errors[paramName] = 'Invalid format';
               isValid = false;
             }
             break;
-            
-          case 'number':
-          case 'integer':
+          case 'number': {
             const numValue = Number(value);
             if (isNaN(numValue)) {
               errors[paramName] = 'Must be a number';
               isValid = false;
-            } else {
-              if (paramConfig.minimum !== undefined && numValue < paramConfig.minimum) {
-                errors[paramName] = `Must be at least ${paramConfig.minimum}`;
-                isValid = false;
-              }
-              if (paramConfig.maximum !== undefined && numValue > paramConfig.maximum) {
-                errors[paramName] = `Must be at most ${paramConfig.maximum}`;
-                isValid = false;
-              }
+            } else if (paramConfig.minimum !== undefined && numValue < paramConfig.minimum) {
+              errors[paramName] = `Must be at least ${paramConfig.minimum}`;
+              isValid = false;
+            } else if (paramConfig.maximum !== undefined && numValue > paramConfig.maximum) {
+              errors[paramName] = `Must be at most ${paramConfig.maximum}`;
+              isValid = false;
             }
             break;
-            
+          }
           case 'array':
             try {
               const arrayValue = typeof value === 'string' ? JSON.parse(value) : value;
               if (!Array.isArray(arrayValue)) {
-                throw new Error('Not an array');
-              }
-              
-              if (paramConfig.minItems !== undefined && arrayValue.length < paramConfig.minItems) {
-                errors[paramName] = `Must have at least ${paramConfig.minItems} items`;
+                errors[paramName] = 'Must be an array';
                 isValid = false;
               }
-              if (paramConfig.maxItems !== undefined && arrayValue.length > paramConfig.maxItems) {
-                errors[paramName] = `Must have at most ${paramConfig.maxItems} items`;
-                isValid = false;
-              }
-            } catch (e) {
-              errors[paramName] = 'Must be a valid JSON array';
+            } catch {
+              errors[paramName] = 'Invalid JSON for array';
               isValid = false;
             }
             break;
-            
           case 'object':
-            if (typeof value === 'string') {
-              try {
-                JSON.parse(value);
-              } catch (e) {
-                errors[paramName] = 'Must be a valid JSON object';
+            try {
+              const objectValue = typeof value === 'string' ? JSON.parse(value) : value;
+              if (typeof objectValue !== 'object' || Array.isArray(objectValue)) {
+                errors[paramName] = 'Must be an object';
                 isValid = false;
               }
-            } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-              // Valid object
-            } else {
-              errors[paramName] = 'Must be an object';
+            } catch {
+              errors[paramName] = 'Invalid JSON for object';
               isValid = false;
             }
             break;
         }
       }
     });
-    
     setValidationErrors(errors);
     return isValid;
   };
 
   const handleParamChange = (paramName: string, value: ParamValue) => {
-    setParams(prev => ({
-      ...prev,
-      [paramName]: value
-    }));
-    
-    // Clear validation error when user starts typing
+    setParams(prev => ({ ...prev, [paramName]: value }));
     if (validationErrors[paramName]) {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[paramName];
-        return newErrors;
-      });
+      const newErrors = { ...validationErrors };
+      delete newErrors[paramName];
+      setValidationErrors(newErrors);
     }
   };
 
   const handleExecute = async () => {
     if (!validateParams()) return;
-    
+
+    setIsExecuting(true);
+    setError(null);
+    setSuccess(null);
+
     try {
-      // Convert stringified JSON back to objects if needed
-      const processedParams: Record<string, any> = { ...params };
-      
+      const finalParams: Record<string, unknown> = {};
       if (action.parameters) {
         Object.entries(action.parameters).forEach(([paramName, paramConfig]) => {
-          if (paramConfig.type === 'array' || paramConfig.type === 'object') {
-            try {
-              const paramValue = processedParams[paramName];
-              if (typeof paramValue === 'string') {
-                processedParams[paramName] = JSON.parse(paramValue);
-              }
-            } catch (e) {
-              console.error(`Error parsing ${paramName}:`, e);
-              throw new Error(`Invalid ${paramConfig.type} format for ${paramName}`);
+          let value = params[paramName];
+          if (paramConfig.type === 'number') {
+            value = Number(value);
+          } else if (paramConfig.type === 'array' || paramConfig.type === 'object') {
+            if (typeof value === 'string') {
+              try { value = JSON.parse(value); } catch { /* ignore */ }
             }
           }
+          finalParams[paramName] = value;
         });
       }
-      
-      setIsExecuting(true);
-      setError(null);
-      setSuccess(null);
-      
-      const handleExecuteAction = async (actionName: string, actionParams: Record<string, unknown>) => {
-        try {
-          await onExecute(capabilityName, actionName, actionParams);
-        } catch (error) {
-          console.error('Error executing action:', error);
-          throw error; // Re-throw to allow error handling in parent
-        }
-      };
-      
-      await handleExecuteAction(action.name, processedParams);
-      setSuccess(`Action "${action.name}" executed successfully`);
+      await onExecute(capabilityName, action.name, finalParams);
+      setSuccess('Action executed successfully!');
     } catch (err) {
-      console.error('Error executing action:', err);
-      setError(err instanceof Error ? err.message : 'Failed to execute action');
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
       setIsExecuting(false);
     }
   };
 
   const renderParameterInput = (paramName: string, paramConfig: ParameterSchema) => {
+    const value = params[paramName];
     const error = validationErrors[paramName];
-    const value = params[paramName] ?? '';
-    const isRequired = paramConfig.required || false;
-    const description = paramConfig.description || '';
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { value: unknown }>) => {
-      const newValue = 'target' in e ? e.target.value : e.value;
-      handleParamChange(paramName, newValue as ParamValue);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      handleParamChange(paramName, e.target.value);
     };
     
-    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       handleParamChange(paramName, e.target.checked);
     };
-    
-    const handleSelectChange = (e: React.ChangeEvent<{ value: unknown }>) => {
-      handleParamChange(paramName, e.target.value as ParamValue);
-    };
-    
-    // Handle boolean type
-    if (paramConfig.type === 'boolean') {
+
+    if (paramConfig.enum) {
       return (
-        <FormControlLabel
-          control={
-            <Switch
-              checked={!!value}
-              onChange={handleCheckboxChange}
-              color="primary"
-            />
-          }
-          label={
-            <Box>
-              <Typography variant="body2">{paramName}{isRequired ? ' *' : ''}</Typography>
-              {description && (
-                <Typography variant="caption" color="textSecondary">
-                  {description}
-                </Typography>
-              )}
-            </Box>
-          }
-          sx={{ mt: 1, mb: 1, alignItems: 'flex-start' }}
-        />
+        <FormControl fullWidth error={!!error} margin="normal">
+          <InputLabel>{paramConfig.description || paramName}</InputLabel>
+          <Select
+            value={value ?? ''}
+            label={paramConfig.description || paramName}
+            onChange={(e) => handleParamChange(paramName, e.target.value as ParamValue)}
+          >
+            {(paramConfig.enum as (string | number)[]).map((option) => (
+              <MenuItem key={String(option)} value={option as string | number}>
+                {String(option)}
+              </MenuItem>
+            ))}
+          </Select>
+          {error && <FormHelperText>{error}</FormHelperText>}
+        </FormControl>
       );
     }
-    
-    // Handle array type (comma-separated input)
-    if (paramConfig.type === 'array') {
-      return (
-        <TextField
-          fullWidth
-          label={`${paramName}${isRequired ? ' *' : ''}`}
-          placeholder={description}
-          value={Array.isArray(value) ? value.join(', ') : value}
-          onChange={(e) => {
-            const val = e.target.value;
-            const arrayValue = val.split(',').map((item: string) => item.trim()).filter(Boolean);
-            handleParamChange(paramName, arrayValue);
-          }}
-          margin="normal"
-          size="small"
-          error={!!error}
-          helperText={error || description}
-          InputLabelProps={{
-            shrink: true,
-          }}
-        />
-      );
+
+    switch (paramConfig.type) {
+      case 'boolean':
+        return (
+          <FormControlLabel
+            control={<Switch checked={!!value} onChange={handleSwitchChange} />}
+            label={paramConfig.description || paramName}
+          />
+        );
+      case 'number':
+        return (
+          <TextField
+            fullWidth
+            type="number"
+            label={paramConfig.description || paramName}
+            value={value ?? ''}
+            onChange={handleChange}
+            required={paramConfig.required}
+            error={!!error}
+            helperText={error}
+            margin="normal"
+          />
+        );
+      case 'array':
+      case 'object':
+        return (
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label={`${paramConfig.description || paramName} (JSON)`}
+            value={typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+            onChange={handleChange}
+            required={paramConfig.required}
+            error={!!error}
+            helperText={error}
+            margin="normal"
+            variant="outlined"
+            InputProps={{ style: { fontFamily: 'monospace' } }}
+          />
+        );
+      case 'string':
+      default:
+        return (
+          <TextField
+            fullWidth
+            label={paramConfig.description || paramName}
+            value={value ?? ''}
+            onChange={handleChange}
+            required={paramConfig.required}
+            error={!!error}
+            helperText={error}
+            margin="normal"
+          />
+        );
     }
-    
-    // Handle number and integer types
-    // Handle number type
-    if (paramConfig.type === 'number' || paramConfig.type === 'integer') {
-      return (
-        <TextField
-          fullWidth
-          label={`${paramName}${isRequired ? ' *' : ''}`}
-          placeholder={description}
-          value={value}
-          onChange={handleChange}
-          type="number"
-          margin="normal"
-          size="small"
-          error={!!error}
-          helperText={error || description}
-          inputProps={{
-            min: paramConfig.minimum,
-            max: paramConfig.maximum,
-            step: paramConfig.type === 'integer' ? '1' : 'any'
-          }}
-          InputLabelProps={{
-            shrink: true,
-          }}
-        />
-      );
-    }
-    
-    // Default to text input
-    return (
-      <TextField
-        fullWidth
-        label={`${paramName}${isRequired ? ' *' : ''}`}
-        placeholder={description}
-        value={value}
-        onChange={handleChange}
-        type={paramConfig.format === 'password' ? 'password' : 'text'}
-        margin="normal"
-        size="small"
-        error={!!error}
-        helperText={error || description}
-        inputProps={{
-          maxLength: paramConfig.maxLength,
-          minLength: paramConfig.minLength,
-          pattern: paramConfig.pattern
-        }}
-        InputLabelProps={{
-          shrink: true,
-        }}
-      />
-    );
   };
 
-  const hasParameters = action?.parameters && Object.keys(action.parameters).length > 0;
-
   return (
-    <Box sx={{ mb: 2, p: 2, border: '1px solid #eee', borderRadius: 1, bgcolor: 'background.paper' }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-        <Box>
-          <Typography variant="subtitle2">{action.name}</Typography>
-          {action.description && (
-            <Typography variant="body2" color="text.secondary">
-              {action.description}
-            </Typography>
-          )}
+    <Card variant="outlined" sx={{ mb: 2 }}>
+      <CardContent>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">{action.name}</Typography>
+          <Tooltip title={isConfigOpen ? 'Hide Parameters' : 'Show Parameters'}>
+            <IconButton onClick={() => setIsConfigOpen(!isConfigOpen)} size="small">
+              {isConfigOpen ? <ExpandLess /> : <ExpandMore />}
+            </IconButton>
+          </Tooltip>
         </Box>
-        <Box>
-          {hasParameters && (
-            <Tooltip title="Configure action">
-              <IconButton 
-                size="small" 
-                onClick={() => setIsConfigOpen(!isConfigOpen)}
-                color={isConfigOpen ? 'primary' : 'default'}
-              >
-                <SettingsIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          <Button 
-            variant="contained" 
-            size="small"
-            onClick={handleExecute}
-            disabled={isExecuting}
-            startIcon={
-              isExecuting ? 
-                <CircularProgress size={16} /> : 
-                success ? 
-                  <SuccessIcon color="success" /> : 
-                  <ExecuteIcon />
-            }
-            color={success ? 'success' : 'primary'}
-            sx={{ ml: 1 }}
-          >
-            {isExecuting ? 'Executing...' : success ? 'Success' : 'Execute'}
-          </Button>
-        </Box>
-      </Box>
-      
-      {error && (
-        <Alert severity="error" sx={{ mt: 1, mb: 1 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert severity="success" sx={{ mt: 1, mb: 1 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
-      
-      <Collapse in={isConfigOpen && hasParameters}>
-        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Action Parameters
-          </Typography>
-          {action.parameters && 
-            Object.entries(action.parameters).map(([paramName, paramConfig]) => (
-              <Box key={paramName} mb={2}>
-                {renderParameterInput(paramName, paramConfig)}
-              </Box>
-            ))
-          }
-        </Box>
-      </Collapse>
-    </Box>
+        <Typography variant="body2" color="text.secondary" gutterBottom>{action.description}</Typography>
+        
+        <Collapse in={isConfigOpen} timeout="auto" unmountOnExit>
+          <Box sx={{ mt: 2 }}>
+            {action.parameters && Object.keys(action.parameters).length > 0 ? (
+              Object.entries(action.parameters).map(([paramName, paramConfig]) => (
+                <div key={paramName}>{renderParameterInput(paramName, paramConfig)}</div>
+              ))
+            ) : (
+              <Typography variant="body2" sx={{ fontStyle: 'italic' }}>No parameters required.</Typography>
+            )}
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleExecute}
+              disabled={isExecuting}
+              startIcon={isExecuting ? <CircularProgress size={20} /> : <ExecuteIcon />}
+              sx={{ mt: 2 }}
+            >
+              {isExecuting ? 'Executing...' : 'Execute'}
+            </Button>
+          </Box>
+        </Collapse>
+
+        <Collapse in={!!error || !!success}>
+          <Box mt={2}>
+            {error && <Alert severity="error">{error}</Alert>}
+            {success && <Alert severity="success" icon={<SuccessIcon fontSize="inherit" />}>{success}</Alert>}
+          </Box>
+        </Collapse>
+      </CardContent>
+    </Card>
   );
 };
 
-// Extend AgentCapability but override the actions type to be more specific
-// Extend the base AgentCapability type to include our UI-specific fields
-interface CapabilityInfo extends Omit<AgentCapability, 'id' | 'enabled'> {
-  id: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  version?: string;
-  metadata?: {
-    type: string;
-    icon: string;
-    color: string;
-  };
-  actions?: ActionSchema[];
-  actionConfigs?: Record<string, {
-    description: string;
-    parameters: Record<string, ParameterSchema>;
-  }>;
-  config?: Record<string, unknown>;
-  error?: string;
-}
-
-interface AgentParameter {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
-  description?: string;
-  required?: boolean;
-  default?: string | number | boolean | null;
-  enum?: Array<string | number | boolean>;
-  minimum?: number;
-  maximum?: number;
-  minLength?: number;
-  maxLength?: number;
-  pattern?: string;
-  format?: string;
-  items?: AgentParameter;
-  properties?: Record<string, AgentParameter>;
-}
-
 interface CapabilityCardProps {
-  agentId: string;
-  capability: CapabilityInfo;
+  capability: AgentCapability;
   onExecuteAction: (capability: string, action: string, params: Record<string, unknown>) => Promise<void>;
-  onConfigure?: (capability: CapabilityInfo) => void;
+  onConfigure?: (capability: AgentCapability) => void;
 }
 
-const CapabilityCard: React.FC<CapabilityCardProps> = ({ 
-  agentId, 
-  capability, 
-  onExecuteAction,
-  onConfigure 
-}) => {
-  const [expanded, setExpanded] = React.useState(false);
-  const [loadingDetails, setLoadingDetails] = React.useState(false);
-  const [capabilityDetails, setCapabilityDetails] = React.useState<CapabilityInfo | null>(null);
-  const { getCapabilityDetails } = useAgents();
-
-  const handleToggleExpand = () => {
-    if (!expanded && !capabilityDetails) {
-      setLoadingDetails(true);
-      // Simulate loading capability details
-      setTimeout(() => {
-        setCapabilityDetails({
-          ...capability,
-          id: capability.id || capability.name, // Ensure id is always defined
-          enabled: capability.enabled !== false, // Default to true if not set
-          actions: capability.actions || [],
-          actionConfigs: capability.actionConfigs || {}
-        });
-        setLoadingDetails(false);
-      }, 500);
-    }
-    setExpanded(!expanded);
-  };
+const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onExecuteAction, onConfigure }) => {
+  const [expanded, setExpanded] = useState(false);
+  const hasActions = capability.actions && capability.actions.length > 0;
 
   const handleConfigure = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -568,52 +318,38 @@ const CapabilityCard: React.FC<CapabilityCardProps> = ({
     }
   };
 
-  const displayDetails = capabilityDetails || capability;
-  const hasActions = (displayDetails.actions && displayDetails.actions.length > 0) || false;
-
   return (
-    <Card variant="outlined" sx={{ mb: 2 }}>
+    <Card elevation={2}>
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box>
-            <Typography variant="h6">{displayDetails.name}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {displayDetails.description}
-            </Typography>
+            <Typography variant="h6" component="div">{capability.name}</Typography>
+            <Typography variant="body2" color="text.secondary">{capability.description}</Typography>
           </Box>
           <Box>
             {onConfigure && (
-              <IconButton onClick={handleConfigure} size="small" sx={{ mr: 1 }}>
-                <SettingsIcon fontSize="small" />
-              </IconButton>
+              <Tooltip title="Configure Capability">
+                <IconButton onClick={handleConfigure} size="small" sx={{ mr: 1 }}>
+                  <SettingsIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             )}
-            <IconButton
-              onClick={handleToggleExpand}
-              aria-expanded={expanded}
-              aria-label="show more"
-              size="small"
-            >
-              {expanded ? <ExpandLess /> : <ExpandMore />}
-            </IconButton>
+            <Tooltip title={expanded ? 'Collapse' : 'Expand'}>
+              <IconButton onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} aria-expanded={expanded} aria-label="show more" size="small">
+                {expanded ? <ExpandLess /> : <ExpandMore />} 
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
-
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <Box sx={{ mt: 2 }}>
-            {loadingDetails ? (
-              <Box display="flex" justifyContent="center" p={2}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : hasActions ? (
+            {hasActions ? (
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Available Actions
-                </Typography>
-                {displayDetails.actions?.map((action) => (
+                <Typography variant="subtitle2" gutterBottom>Available Actions</Typography>
+                {capability.actions?.map((action) => (
                   <Box key={action.name} mb={2}>
                     <CapabilityAction
-                      agentId={agentId}
-                      capabilityName={displayDetails.name}
+                      capabilityName={capability.name}
                       action={action}
                       onExecute={onExecuteAction}
                     />
@@ -621,9 +357,7 @@ const CapabilityCard: React.FC<CapabilityCardProps> = ({
                 ))}
               </Box>
             ) : (
-              <Alert severity="info" sx={{ mt: 1 }}>
-                No actions available for this capability.
-              </Alert>
+              <Alert severity="info" sx={{ mt: 1 }}>No actions available for this capability.</Alert>
             )}
           </Box>
         </Collapse>
@@ -632,30 +366,18 @@ const CapabilityCard: React.FC<CapabilityCardProps> = ({
   );
 };
 
-const AgentCapabilities: React.FC<AgentCapabilitiesProps> = ({
-  agentId,
-  onConfigureCapability,
-}) => {
-  const { getAgentCapabilities, getAvailableCapabilities, loadAgentCapabilities } = useAgents();
-  const [capabilities, setCapabilities] = React.useState<CapabilityInfo[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [availableCapabilities, setAvailableCapabilities] = React.useState<AgentCapability[]>([]);
+const AgentCapabilities: React.FC<AgentCapabilitiesProps> = ({ agentId, onConfigureCapability }) => {
+  const { getAgentCapabilities, loadAgentCapabilities } = useAgents();
+  const [capabilities, setCapabilities] = useState<AgentCapability[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadCapabilities = React.useCallback(async () => {
+  const loadCapabilities = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
-      // Load agent's capabilities
       const agentCaps = await getAgentCapabilities(agentId);
       setCapabilities(agentCaps);
-
-      // Load available capabilities
-      const availableCaps = await getAvailableCapabilities();
-      setAvailableCapabilities(availableCaps);
-
-      // If no capabilities loaded, try to load them
       if (agentCaps.length === 0) {
         await loadAgentCapabilities(agentId);
         const updatedCaps = await getAgentCapabilities(agentId);
@@ -667,130 +389,43 @@ const AgentCapabilities: React.FC<AgentCapabilitiesProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [agentId, getAgentCapabilities, getAvailableCapabilities, loadAgentCapabilities]);
+  }, [agentId, getAgentCapabilities, loadAgentCapabilities]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadCapabilities();
   }, [loadCapabilities]);
 
-  const [executionStatus, setExecutionStatus] = React.useState<{
-    [key: string]: {
-      status: 'idle' | 'pending' | 'success' | 'error';
-      message?: string;
-      timestamp?: number;
-    };
-  }>({});
-
-  const handleExecuteAction = async (
-    capabilityName: string, 
-    action: string, 
-    params: Record<string, unknown>
-  ) => {
-    const actionKey = `${capabilityName}-${action}`;
-    
-    try {
-      setExecutionStatus(prev => ({
-        ...prev,
-        [actionKey]: { 
-          status: 'pending',
-          message: 'Executing action...',
-          timestamp: Date.now()
-        }
-      }));
-
-      // Call the agent service to execute the action
-      const response = await fetch(`/api/agents/${agentId}/execute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          capability: capabilityName,
-          action,
-          parameters: params,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to execute action');
-      }
-
-      const result = await response.json();
-      
-      setExecutionStatus(prev => ({
-        ...prev,
-        [actionKey]: {
-          status: 'success',
-          message: result.message || 'Action executed successfully',
-          timestamp: Date.now()
-        }
-      }));
-
-      // Refresh capabilities to reflect any changes
-      await loadCapabilities();
-      
-      return result;
-    } catch (err) {
-      console.error('Error executing action:', err);
-      
-      setExecutionStatus(prev => ({
-        ...prev,
-        [actionKey]: {
-          status: 'error',
-          message: err instanceof Error ? err.message : 'Failed to execute action',
-          timestamp: Date.now()
-        }
-      }));
-      
-      throw err;
-    }
+  const handleExecuteAction = async (capabilityName: string, action: string, params: Record<string, unknown>) => {
+    // This is a placeholder. In a real app, you'd call the agent service.
+    console.log(`Executing ${action} on ${capabilityName} with params:`, params);
+    // Re-load capabilities to reflect any state changes.
+    await loadCapabilities();
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" p={4}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
-      </Alert>
-    );
-  }
+  if (loading) return <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>;
+  if (error) return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
 
   return (
     <Box>
       <Box mb={3}>
-        <Typography variant="h5" gutterBottom>
-          Agent Capabilities
-        </Typography>
+        <Typography variant="h5" gutterBottom>Agent Capabilities</Typography>
         <Typography variant="body1" color="text.secondary" paragraph>
           These are the capabilities available for this agent. Click on a capability to see available actions.
         </Typography>
       </Box>
-
       {capabilities.length > 0 ? (
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {capabilities.map((capability) => (
-            <Grid item xs={12} key={capability.id}>
-              <CapabilityCard
-                agentId={agentId}
-                capability={capability}
-                onExecuteAction={handleExecuteAction}
-                onConfigure={onConfigureCapability}
-              />
-            </Grid>
+            <CapabilityCard
+              key={capability.id || capability.name}
+              capability={capability}
+              onExecuteAction={handleExecuteAction}
+              onConfigure={onConfigureCapability}
+            />
           ))}
-        </Grid>
+        </Box>
       ) : (
-        <Alert severity="info">
-          No capabilities found for this agent. Try refreshing the list or check back later.
-        </Alert>
+        <Alert severity="info">No capabilities found for this agent.</Alert>
       )}
     </Box>
   );

@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
+from src.extensions import db
 from src.services.kubernetes_client import KubernetesClient, ClusterAPIManager
 from src.services.infrastructure_provisioner import InfrastructureProvisioner
 from src.services.cluster_manager import ClusterManager
-from src.models.cluster import db, Cluster, CloudAccount
+from src.models.cluster import Cluster, CloudAccount
 import uuid
 import json
 from datetime import datetime
@@ -13,18 +14,44 @@ logger = logging.getLogger(__name__)
 cluster_ops_bp = Blueprint('cluster_operations', __name__)
 
 # Initialize services
-k8s_client = KubernetesClient()
-capi_manager = ClusterAPIManager(k8s_client)
-infra_provisioner = InfrastructureProvisioner()
-cluster_manager = ClusterManager(k8s_client)
+k8s_client = None # Initialize as None, will be instantiated on demand
+capi_manager = None
+infra_provisioner = None
+cluster_manager = None
+
+def get_k8s_client():
+    global k8s_client
+    if k8s_client is None:
+        k8s_client = KubernetesClient()
+    return k8s_client
+
+def get_capi_manager():
+    global capi_manager
+    if capi_manager is None:
+        capi_manager = ClusterAPIManager(get_k8s_client())
+    return capi_manager
+
+def get_infra_provisioner():
+    global infra_provisioner
+    if infra_provisioner is None:
+        infra_provisioner = InfrastructureProvisioner()
+    return infra_provisioner
+
+def get_cluster_manager():
+    global cluster_manager
+    if cluster_manager is None:
+        cluster_manager = ClusterManager(get_k8s_client())
+    return cluster_manager
 
 @cluster_ops_bp.route('/cluster-api/status', methods=['GET'])
 def get_cluster_api_status():
     """Get Cluster-API installation status"""
     try:
-        is_connected = k8s_client.is_connected()
-        is_installed = capi_manager.is_cluster_api_installed() if is_connected else False
-        cluster_info = k8s_client.get_cluster_info() if is_connected else None
+        client = get_k8s_client()
+        is_connected = client.is_connected()
+        manager = get_capi_manager()
+        is_installed = manager.is_cluster_api_installed() if is_connected else False
+        cluster_info = client.get_cluster_info() if is_connected else None
         
         return jsonify({
             'success': True,
@@ -46,13 +73,14 @@ def get_cluster_api_status():
 def install_cluster_api():
     """Install Cluster-API controllers"""
     try:
-        if not k8s_client.is_connected():
+        if not get_k8s_client().is_connected():
             return jsonify({
                 'success': False,
                 'error': 'Kubernetes client not connected'
             }), 400
         
-        success, message = capi_manager.install_cluster_api()
+        manager = get_capi_manager()
+        success, message = manager.install_cluster_api()
         
         if success:
             return jsonify({
@@ -75,7 +103,7 @@ def install_cluster_api():
 def install_provider(provider_name):
     """Install a specific infrastructure provider"""
     try:
-        if not k8s_client.is_connected():
+        if not get_k8s_client().is_connected():
             return jsonify({
                 'success': False,
                 'error': 'Kubernetes client not connected'
@@ -84,7 +112,8 @@ def install_provider(provider_name):
         data = request.get_json() or {}
         provider_version = data.get('version')
         
-        success, message = capi_manager.install_provider(provider_name, provider_version)
+        manager = get_capi_manager()
+        success, message = manager.install_provider(provider_name, provider_version)
         
         if success:
             return jsonify({
@@ -119,7 +148,7 @@ def create_cluster():
                 }), 400
         
         # Validate cluster configuration
-        is_valid, validation_message = infra_provisioner.validate_cluster_config(data)
+        is_valid, validation_message = get_infra_provisioner().validate_cluster_config(data)
         if not is_valid:
             return jsonify({
                 'success': False,
@@ -218,7 +247,7 @@ def create_cluster():
         
         # Prepare infrastructure manifests
         logger.info(f"Preparing infrastructure for cluster {cluster_config['name']}")
-        infra_result = infra_provisioner.prepare_infrastructure(cluster_config, cloud_account_data)
+        infra_result = get_infra_provisioner().prepare_infrastructure(cluster_config, cloud_account_data)
         
         if not infra_result.get('success'):
             return jsonify({
@@ -227,7 +256,7 @@ def create_cluster():
             }), 500
         
         # Estimate cost
-        cost_estimate = infra_provisioner.estimate_cost(cluster_config, data['provider'])
+        cost_estimate = get_infra_provisioner().estimate_cost(cluster_config, data['provider'])
         
         # Create cluster using Cluster-API with prepared infrastructure
         logger.info(f"Creating cluster {cluster_config['name']} with Cluster-API")
@@ -236,7 +265,8 @@ def create_cluster():
         enhanced_config = cluster_config.copy()
         enhanced_config['infrastructure_manifests'] = infra_result.get('manifests', [])
         
-        capi_result = capi_manager.create_cluster(enhanced_config)
+        manager = get_capi_manager()
+        capi_result = manager.create_cluster(enhanced_config)
         
         if capi_result.get('success'):
             # Store cluster information in database
@@ -318,7 +348,8 @@ def get_cluster_status(cluster_id):
             namespace = 'default'
         
         # Get real-time status from Cluster-API
-        status = capi_manager.get_cluster_status(cluster_name, namespace)
+        manager = get_capi_manager()
+        status = manager.get_cluster_status(cluster_name, namespace)
         
         # Update database status if available
         if cluster and status.get('phase'):
@@ -363,7 +394,8 @@ def delete_cluster(cluster_id):
             namespace = 'default'
         
         # Delete cluster using Cluster-API
-        result = capi_manager.delete_cluster(cluster_name, namespace)
+        manager = get_capi_manager()
+        result = manager.delete_cluster(cluster_name, namespace)
         
         if result.get('success'):
             # Update database
@@ -414,7 +446,7 @@ def get_cluster_kubeconfig(cluster_id):
                 'error': 'Cluster not found in database'
             }), 404
         
-        if not k8s_client.is_connected():
+        if not get_k8s_client().is_connected():
             return jsonify({
                 'success': False,
                 'error': 'Kubernetes client not connected'
@@ -422,7 +454,8 @@ def get_cluster_kubeconfig(cluster_id):
         
         try:
             # Get kubeconfig secret from cluster
-            secret = k8s_client.core_v1.read_namespaced_secret(
+            client = get_k8s_client()
+            secret = client.core_v1.read_namespaced_secret(
                 name=f'{cluster_name}-kubeconfig',
                 namespace=namespace
             )
@@ -481,7 +514,7 @@ def get_cluster_logs(cluster_id):
                 'error': 'Cluster not found in database'
             }), 404
         
-        if not k8s_client.is_connected():
+        if not get_k8s_client().is_connected():
             return jsonify({
                 'success': True,
                 'data': {
@@ -504,7 +537,8 @@ def get_cluster_logs(cluster_id):
         
         try:
             # Get logs from cluster-api controller pods
-            pods = k8s_client.core_v1.list_namespaced_pod(
+            client = get_k8s_client()
+            pods = client.core_v1.list_namespaced_pod(
                 namespace='capi-system',
                 label_selector='cluster.x-k8s.io/provider=cluster-api'
             )
@@ -512,7 +546,8 @@ def get_cluster_logs(cluster_id):
             logs = []
             for pod in pods.items[:3]:  # Limit to first 3 pods
                 try:
-                    pod_logs = k8s_client.core_v1.read_namespaced_pod_log(
+                    client = get_k8s_client()
+                    pod_logs = client.core_v1.read_namespaced_pod_log(
                         name=pod.metadata.name,
                         namespace='capi-system',
                         tail_lines=10
@@ -566,8 +601,6 @@ def get_cluster_logs(cluster_id):
             'error': str(e)
         }), 500
 
-
-
 @cluster_ops_bp.route('/clusters/<cluster_id>/scale', methods=['POST'])
 def scale_cluster(cluster_id):
     """Scale cluster worker nodes up or down"""
@@ -597,7 +630,8 @@ def scale_cluster(cluster_id):
         }
         
         # Execute scaling operation
-        result = cluster_manager.scale_cluster(cluster_id, scale_config)
+        manager = get_cluster_manager()
+        result = manager.scale_cluster(cluster_id, scale_config)
         
         if result.get('success'):
             # Update cluster in database if possible

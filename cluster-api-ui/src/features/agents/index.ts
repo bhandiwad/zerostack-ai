@@ -5,15 +5,15 @@ export * from './types';
 export { agentService } from './services/AgentService';
 
 // Context
-export { AgentProvider, useAgents } from './context/AgentContext';
+export { AgentProvider } from './context/AgentContext';
 
 // Components
 export { default as AgentsDashboard } from './AgentsDashboard';
 export { default as AgentCard } from './components/AgentCard';
 export { default as AgentChat } from './components/AgentChat';
 
-// Hooks (if any)
-// export * from './hooks';
+// Hooks
+export { useAgents } from './hooks/useAgents';
 
 // Utils (if any)
 // export * from './utils';

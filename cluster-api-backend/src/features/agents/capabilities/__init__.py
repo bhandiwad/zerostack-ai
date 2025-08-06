@@ -45,6 +45,7 @@ __all__ = [
     'ParameterSchema',
     'ActionSchema',
     'get_capability',
+    'get_capability_instance',
     'list_capabilities',
     'create_capability',
 ]
@@ -52,6 +53,23 @@ __all__ = [
 def get_capability(name: str) -> Optional[Type[AgentCapability]]:
     """Get a capability class by name"""
     return CAPABILITY_REGISTRY.get(name)
+
+def get_capability_instance(name: str, agent_id: str, config: Optional[Dict[str, Any]] = None) -> Optional[AgentCapability]:
+    """
+    Get a capability instance by name
+    
+    Args:
+        name: Name of the capability to get
+        agent_id: ID of the agent this capability is for
+        config: Optional configuration for the capability
+        
+    Returns:
+        An instance of the requested capability, or None if not found
+    """
+    capability_class = get_capability(name)
+    if capability_class is None:
+        return None
+    return capability_class(agent_id, config or {})
 
 def list_capabilities() -> Dict[str, str]:
     """List all available capabilities with their descriptions"""

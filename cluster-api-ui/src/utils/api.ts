@@ -1,19 +1,20 @@
 import { API_BASE_URL } from '../config';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-interface ApiCallOptions extends Omit<RequestInit, 'body'> {
-  data?: any;
-  params?: Record<string, any>;
+export interface ApiCallOptions extends Omit<RequestInit, 'body'> {
+  url?: string;
+  data?: unknown;
+  params?: Record<string, string>;
   headers?: Record<string, string>;
 }
 
-export const apiCall = async <T = any>(
+export const apiCall = async <T = unknown>(
   urlOrOptions: string | ApiCallOptions,
   options: ApiCallOptions = {}
 ): Promise<ApiResponse<T>> => {

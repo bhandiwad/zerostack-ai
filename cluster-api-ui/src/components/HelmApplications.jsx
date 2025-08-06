@@ -39,8 +39,7 @@ import CircularProgress from '@mui/material/CircularProgress';
  * @returns {JSX.Element} The rendered component
  */
 const HelmApplications = ({ cluster, apiCall, showNotification }) => {
-  /** @type {[HelmApplication[], Function]} */
-  const [applications, setApplications] = useState([]);
+
   /** @type {[HelmChart[], Function]} */
   const [availableCharts, setAvailableCharts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -191,6 +190,7 @@ const HelmApplications = ({ cluster, apiCall, showNotification }) => {
    */
   const loadAvailableCharts = async () => {
     if (!cluster?.id) return;
+    setLoading(true);
     
     try {
       // First try to fetch from the backend
@@ -205,42 +205,18 @@ const HelmApplications = ({ cluster, apiCall, showNotification }) => {
       }
     } catch (error) {
       console.error('Error loading available charts:', error);
-      // Fallback to sample charts on error
-      setAvailableCharts(sampleCharts);
+      showNotification(`Failed to load charts: ${error.message}`, 'error');
+      setAvailableCharts(sampleCharts); // Fallback to sample data
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (cluster) {
-      loadApplications();
       loadAvailableCharts();
     }
   }, [cluster]);
-
-  /**
-   * Fetches the list of installed applications from the API
-   * @async
-   * @returns {Promise<void>}
-   */
-  const loadApplications = async () => {
-    if (!cluster?.id) return;
-    
-    setLoading(true);
-    try {
-      const result = await apiCall(`/clusters/${cluster.id}/applications`);
-      if (result && result.success) {
-        setApplications(result.data || []);
-      } else {
-        throw new Error(result?.error || 'Failed to load applications');
-      }
-    } catch (error) {
-      console.error('Error loading applications:', error);
-      showNotification(`Failed to load applications: ${error.message}`, 'error');
-      setApplications([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   /**
    * Validates the installation form
@@ -301,7 +277,6 @@ const HelmApplications = ({ cluster, apiCall, showNotification }) => {
         showNotification(`Application "${installConfig.name}" installation started successfully`);
         setShowInstallDialog(false);
         setInstallConfig({ name: '', namespace: 'default', version: '', values: {} });
-        loadApplications();
       } else {
         throw new Error(result?.error || 'Failed to start installation');
       }
@@ -339,65 +314,11 @@ const HelmApplications = ({ cluster, apiCall, showNotification }) => {
    */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setInstallConfig(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setInstallConfig(prev => ({ ...prev, [name]: value }));
     
     // Clear error when user starts typing
     if (formErrors[name]) {
-      setFormErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  };
-
-  /** @type {[string|null, Function]} */
-  const [uninstallingApp, setUninstallingApp] = useState(null);
-
-  /**
-   * Handles the uninstallation of a Helm release
-   * @async
-   * @param {HelmApplication} app - The application to uninstall
-   * @returns {Promise<void>}
-   */
-  const handleUninstallApplication = async (app) => {
-    if (!window.confirm(`Are you sure you want to uninstall "${app.name}" from namespace "${app.namespace}"? This action cannot be undone.`)) {
-      return;
-    }
-    
-    setUninstallingApp(app.name);
-
-    if (!cluster?.id) {
-      showNotification('No cluster selected', 'error');
-      return;
-    }
-
-    try {
-      const result = await apiCall(
-        `/clusters/${cluster.id}/namespaces/${app.namespace}/releases/${app.name}`, 
-        { method: 'DELETE' }
-      );
-      
-      if (result && result.success) {
-        showNotification(`Application "${app.name}" uninstallation started successfully`);
-        loadApplications();
-      } else {
-        throw new Error(result?.error || 'Failed to start uninstallation');
-      }
-    } catch (error) {
-      console.error('Error uninstalling application:', error);
-      showNotification(`Failed to uninstall application: ${error.message}`, 'error');
-    }
-  };
-
-  const getApplicationStatusColor = (status) => {
-    switch (status) {
-      case 'deployed': return 'success';
-      case 'pending': return 'warning';
-      case 'failed': return 'error';
-      default: return 'default';
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
@@ -427,33 +348,19 @@ const HelmApplications = ({ cluster, apiCall, showNotification }) => {
           <h2>Helm Applications</h2>
           <span className="cluster-name">{cluster.name}</span>
         </div>
-        <div className="applications-actions">
-          <button 
-            className="refresh-button"
-            onClick={loadApplications}
-            disabled={loading}
-          >
-            {loading ? '🔄' : '🔄'} Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="applications-navigation">
-        <div className="category-tabs">
-          {categories.map(category => (
-            <button
-              key={category.key}
-              className={`category-tab ${selectedCategory === category.key ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(category.key)}
-            >
-              <span className="tab-icon">{category.icon}</span>
-              <span className="tab-label">{category.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="search-box">
+        <div className="applications-controls">
+          <div className="category-filter">
+            {categories.map(category => (
+              <button
+                key={category.key}
+                className={`category-button ${selectedCategory === category.key ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(category.key)}
+              >
+                <span className="icon">{category.icon}</span>
+                {category.label}
+              </button>
+            ))}
+          </div>
           <input
             type="text"
             placeholder="Search applications..."
@@ -483,22 +390,18 @@ const HelmApplications = ({ cluster, apiCall, showNotification }) => {
                   <div className="chart-icon">{chart.icon}</div>
                   <div className="chart-info">
                     <h4>{chart.displayName}</h4>
-                    <span className="chart-version">v{chart.version}</span>
+                    <p>{chart.description}</p>
                   </div>
                 </div>
                 
-                <div className="chart-description">
-                  <p>{chart.description}</p>
-                </div>
-
                 <div className="chart-details">
+                  <div className="detail-item">
+                    <span className="label">Chart Version:</span>
+                    <span className="value">{chart.version}</span>
+                  </div>
                   <div className="detail-item">
                     <span className="label">Repository:</span>
                     <span className="value">{chart.repository}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="label">Category:</span>
-                    <span className="value">{chart.category}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Maintainer:</span>
@@ -508,16 +411,10 @@ const HelmApplications = ({ cluster, apiCall, showNotification }) => {
 
                 <div className="chart-actions">
                   <button
-                    className={`action-btn install ${uninstallingApp === chart.name ? 'loading' : ''}`}
+                    className="action-btn install"
                     onClick={() => handleOpenInstallDialog(chart)}
-                    disabled={uninstallingApp === chart.name}
                   >
-                    {uninstallingApp === chart.name ? (
-                      <>
-                        <CircularProgress size={16} style={{ marginRight: '6px', color: 'inherit' }} />
-                        Installing...
-                      </>
-                    ) : 'Install'}
+                    Install
                   </button>
                   
                   <button

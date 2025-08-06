@@ -23,8 +23,9 @@ def init_db():
             id=str(uuid.uuid4()),
             name="Default Agent",
             description="Default system agent",
-            version="1.0.0",
-            is_active=True
+            type="automation",
+            status={"is_active": True, "health": "healthy"},
+            capabilities=["monitoring", "automation"]
         )
         db.session.add(agent)
         db.session.commit()

@@ -1,0 +1,17 @@
+        query = AgentMessage.query.filter_by(conversation_id=conversation_id)
+        total = query.count()
+        messages = query.order_by(AgentMessage.timestamp.asc()).offset(offset).limit(limit).all()
+        
+        return api_response({
+            'items': [msg.to_dict() for msg in messages],
+            'total': total,
+            'offset': offset,
+            'limit': limit
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting messages for conversation {conversation_id}: {str(e)}")
+        return api_response(
+            error=f"Failed to get messages: {str(e)}",
+            status_code=500
+        )

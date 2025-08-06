@@ -17,12 +17,11 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  Chip,
   ListItemButton,
-  ListItemIcon,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
-import { useAgents, Agent } from '../context/AgentContext';
+import { useAgentContext } from '../context/AgentContext';
+import { Agent } from '../types';
 
 interface AgentManagementProps {
   onAgentSelect?: (agentId: string) => void;
@@ -30,7 +29,7 @@ interface AgentManagementProps {
 }
 
 const AgentManagement: React.FC<AgentManagementProps> = ({ onAgentSelect, selectedAgentId }) => {
-  const { agents, createAgent, updateAgent, deleteAgent, loading, error } = useAgents();
+    const { agents, createAgent, updateAgent, deleteAgent, loading, error } = useAgentContext();
   const [openDialog, setOpenDialog] = React.useState(false);
   const [currentAgent, setCurrentAgent] = React.useState<Partial<Agent> | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -48,17 +47,22 @@ const AgentManagement: React.FC<AgentManagementProps> = ({ onAgentSelect, select
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setCurrentAgent(prev => ({
-      ...prev!,
-      [name]: value,
-    }));
+        setCurrentAgent((prev) => (
+      prev ? { ...prev, [name]: value } : { [name]: value }
+    ));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!currentAgent?.name.trim()) {
+
+    if (!currentAgent?.name?.trim()) {
       setFormError('Agent name is required');
+      return;
+    }
+
+    // Guard against null currentAgent, though the check above should prevent it.
+    if (!currentAgent) {
+      setFormError('An unexpected error occurred.');
       return;
     }
 
@@ -66,12 +70,14 @@ const AgentManagement: React.FC<AgentManagementProps> = ({ onAgentSelect, select
       if (currentAgent.id) {
         await updateAgent(currentAgent.id, {
           name: currentAgent.name,
-          description: currentAgent.description,
+          description: currentAgent.description || '',
         });
       } else {
         await createAgent({
           name: currentAgent.name,
-          description: currentAgent.description,
+          description: currentAgent.description || '',
+          capabilities: [],
+          config: { enabled: true },
         });
       }
       handleCloseDialog();
@@ -116,7 +122,7 @@ const AgentManagement: React.FC<AgentManagementProps> = ({ onAgentSelect, select
         </Box>
       ) : (
         <List>
-          {agents.map((agent) => (
+          {agents.map((agent: Agent) => (
             <React.Fragment key={agent.id}>
               <ListItem
                 disablePadding

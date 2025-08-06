@@ -11,7 +11,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 
 # Import extensions and blueprints
-from src.extensions import db, init_extensions
+from src.extensions import db, init_extensions, init_app
+from src.config import config_by_name
 from src.routes.user import user_bp
 from src.routes.clusters import clusters_bp
 from src.routes.providers import providers_bp
@@ -23,22 +24,30 @@ from src.routes.organization import org_bp
 from src.routes.advanced_cluster_routes import advanced_cluster_bp
 from src.routes.clusters_multitenant import clusters_mt_bp
 from src.routes.agents import agents_bp
+from src.routes.cluster_explorer import cluster_explorer_bp
+from src.routes.helm_charts import helm_charts_bp
 
-def create_app():
+def create_app(config_name='dev'):
     """Create and configure the Flask application"""
     app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
     
     # Configure the app
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(os.path.dirname(__file__), '..', 'instance', 'app.db')}"
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config.from_object(config_by_name[config_name])
     
     # Initialize extensions
-    init_extensions(app)
+    db = init_extensions(app)
     
-    # Enable CORS for all routes
-    CORS(app, resources={r"/*": {"origins": "*"}})
-    
+    # Enable CORS before blueprint registration
+    CORS(app, 
+         resources={
+             r"/api/*": {
+                 "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+                 "allow_headers": ["Content-Type", "Authorization"],
+                 "supports_credentials": True
+             }
+         })
+
     # Register blueprints
     app.register_blueprint(user_bp, url_prefix='/api')
     app.register_blueprint(clusters_bp, url_prefix='/api')
@@ -48,6 +57,8 @@ def create_app():
     app.register_blueprint(cost_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(org_bp, url_prefix='/api')
+    app.register_blueprint(cluster_explorer_bp, url_prefix='/api')
+    app.register_blueprint(helm_charts_bp, url_prefix='/api')
     app.register_blueprint(advanced_cluster_bp, url_prefix='/api')
     app.register_blueprint(clusters_mt_bp, url_prefix='/api/mt')
     app.register_blueprint(agents_bp, url_prefix='/api')
@@ -67,12 +78,8 @@ def create_app():
     return app
 
 # Create the Flask application
-app = create_app()
-
-# Initialize the database
-with app.app_context():
-    db.create_all()
-    db.create_all()
+config_name = os.getenv('FLASK_CONFIG', 'dev')
+app = create_app(config_name)
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -92,4 +99,5 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002, debug=True)
+    # Note: use_reloader=False is important for stability in some environments
+    app.run(host='0.0.0.0', port=5002, debug=True, use_reloader=False)

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from src.models.cluster import db, Cluster, ClusterMetrics, Alert, CloudAccount, ProviderFlavor
+from src.extensions import db
+from src.models.cluster import Cluster, ClusterMetrics, Alert, CloudAccount, ProviderFlavor
 from src.services.kubernetes_client import KubernetesClient, ClusterAPIManager
 import uuid
 import json
@@ -9,8 +10,17 @@ import random
 clusters_bp = Blueprint('clusters', __name__)
 
 # Initialize Kubernetes client and Cluster-API manager
-k8s_client = KubernetesClient()
-capi_manager = ClusterAPIManager(k8s_client)
+k8s_client = None  # Initialize as None, will be instantiated on demand
+cluster_api_manager = None
+
+def get_cluster_api_manager():
+    """Get a singleton instance of the ClusterAPIManager."""
+    global k8s_client, cluster_api_manager
+    if k8s_client is None:
+        k8s_client = KubernetesClient()
+    if cluster_api_manager is None:
+        cluster_api_manager = ClusterAPIManager(k8s_client)
+    return cluster_api_manager
 
 # Cluster CRUD operations
 @clusters_bp.route('/clusters', methods=['GET'])
@@ -156,122 +166,126 @@ def update_cluster(cluster_id):
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@clusters_bp.route('/clusters/<cluster_id>', methods=['DELETE'])
+@clusters_bp.route('/clusters/<string:cluster_id>', methods=['DELETE'])
 def delete_cluster(cluster_id):
     """Delete a cluster"""
     try:
         cluster = Cluster.query.get(cluster_id)
         if not cluster:
             return jsonify({'success': False, 'error': 'Cluster not found'}), 404
-        
-        # In real implementation, this would trigger Cluster-API deletion
-        cluster.status = 'deleting'
+
+        manager = get_cluster_api_manager()
+        if not manager.k8s_client.is_connected():
+            # For disconnected state, we can still remove it from our DB
+            db.session.delete(cluster)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Cluster removed from database (Kubernetes not connected)'})
+
+        success, message = manager.delete_cluster(cluster.name, getattr(cluster, 'namespace', 'default'))
+        if not success:
+            return jsonify({'success': False, 'error': message}), 500
+
+        db.session.delete(cluster)
         db.session.commit()
-        
-        # Simulate deletion process
-        # After successful deletion, remove from database
-        # For now, we'll just mark as deleted
-        
-        return jsonify({
-            'success': True,
-            'message': 'Cluster deletion initiated'
-        })
-        
+
+        return jsonify({'success': True, 'message': 'Cluster deletion initiated'})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # Cluster operations
-@clusters_bp.route('/clusters/<cluster_id>/start', methods=['POST'])
+@clusters_bp.route('/clusters/<string:cluster_id>/start', methods=['POST'])
 def start_cluster(cluster_id):
     """Start a stopped cluster"""
     try:
         cluster = Cluster.query.get(cluster_id)
         if not cluster:
             return jsonify({'success': False, 'error': 'Cluster not found'}), 404
-        
+
         if cluster.status == 'running':
             return jsonify({'success': False, 'error': 'Cluster is already running'}), 400
-        
+
+        # Placeholder for starting logic, as ClusterAPIManager doesn't have `start_cluster`
         cluster.status = 'starting'
         cluster.updated_at = datetime.utcnow()
         db.session.commit()
-        
-        # Simulate cluster start process
-        # In real implementation, this would trigger Cluster-API operations
-        
+
         return jsonify({
             'success': True,
             'message': 'Cluster start initiated',
             'data': cluster.to_dict()
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@clusters_bp.route('/clusters/<cluster_id>/stop', methods=['POST'])
+@clusters_bp.route('/clusters/<string:cluster_id>/stop', methods=['POST'])
 def stop_cluster(cluster_id):
     """Stop a running cluster"""
     try:
         cluster = Cluster.query.get(cluster_id)
         if not cluster:
             return jsonify({'success': False, 'error': 'Cluster not found'}), 404
-        
+
         if cluster.status == 'stopped':
             return jsonify({'success': False, 'error': 'Cluster is already stopped'}), 400
-        
+
+        # Placeholder for stopping logic, as ClusterAPIManager doesn't have `stop_cluster`
         cluster.status = 'stopping'
         cluster.updated_at = datetime.utcnow()
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Cluster stop initiated',
             'data': cluster.to_dict()
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@clusters_bp.route('/clusters/<cluster_id>/scale', methods=['POST'])
+@clusters_bp.route('/clusters/<string:cluster_id>/scale', methods=['POST'])
 def scale_cluster(cluster_id):
     """Scale cluster nodes"""
     try:
         cluster = Cluster.query.get(cluster_id)
         if not cluster:
             return jsonify({'success': False, 'error': 'Cluster not found'}), 404
-        
+
         data = request.get_json()
         new_node_count = data.get('nodeCount')
-        
-        if not new_node_count or new_node_count < 1:
+
+        if not isinstance(new_node_count, int) or new_node_count < 0:
             return jsonify({'success': False, 'error': 'Invalid node count'}), 400
-        
+
+        manager = get_cluster_api_manager()
+        if not manager.k8s_client.is_connected():
+            return jsonify({'success': False, 'error': 'Kubernetes cluster not configured or accessible.'}), 503
+
         old_count = cluster.node_count
+        success, message = manager.scale_cluster(
+            cluster_name=cluster.name,
+            namespace=getattr(cluster, 'namespace', 'default'),
+            worker_count=new_node_count
+        )
+
+        if not success:
+            return jsonify({'success': False, 'error': message}), 500
+
         cluster.node_count = new_node_count
         cluster.status = 'scaling'
         cluster.updated_at = datetime.utcnow()
         db.session.commit()
-        
-        # Create alert for scaling operation
-        alert = Alert(
-            id=str(uuid.uuid4()),
-            cluster_id=cluster_id,
-            severity='info',
-            message=f'Cluster scaling from {old_count} to {new_node_count} nodes',
-            timestamp=datetime.utcnow()
-        )
-        db.session.add(alert)
-        db.session.commit()
-        
+
         return jsonify({
             'success': True,
-            'message': f'Cluster scaling initiated: {old_count} → {new_node_count} nodes',
+            'message': 'Cluster scaling initiated',
             'data': cluster.to_dict()
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

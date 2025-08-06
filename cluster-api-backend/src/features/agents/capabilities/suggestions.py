@@ -2,6 +2,7 @@ import asyncio
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
 from .base import AgentCapability
+from src.services.openai_service import OpenAIService
 import logging
 import json
 from enum import Enum
@@ -85,7 +86,7 @@ class SuggestionsCapability(AgentCapability):
     def __init__(self, agent_id: str, config: Optional[Dict[str, Any]] = None):
         super().__init__(agent_id, config)
         self.suggestions: Dict[str, Suggestion] = {}
-        self.analyzers = []
+        self.openai_service: Optional[OpenAIService] = None
         self.analysis_interval = self.config.get('analysis_interval', 300)  # 5 minutes
         self.analysis_task = None
         self.running = False
@@ -95,8 +96,7 @@ class SuggestionsCapability(AgentCapability):
         try:
             logger.info("Initializing SuggestionsCapability")
             
-            # Register built-in analyzers
-            self._register_analyzers()
+            self.openai_service = OpenAIService()
             
             # Start the periodic analysis
             self.running = True
@@ -118,15 +118,7 @@ class SuggestionsCapability(AgentCapability):
             except asyncio.CancelledError:
                 pass
     
-    def _register_analyzers(self):
-        """Register built-in analyzers"""
-        self.analyzers = [
-            self._analyze_resource_requests_limits,
-            self._analyze_pod_restarts,
-            self._analyze_node_utilization,
-            self._analyze_image_tags,
-            self._analyze_pod_anti_affinity,
-        ]
+
     
     async def execute(self, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a suggestions action"""
@@ -282,144 +274,81 @@ class SuggestionsCapability(AgentCapability):
             if s.acknowledged
         }
         
-        # Run all analyzers
-        for analyzer in self.analyzers:
-            try:
-                await analyzer()
-            except Exception as e:
-                logger.error(f"Error in analyzer {analyzer.__name__}: {str(e)}", exc_info=True)
+        # Generate suggestions using the LLM
+        await self._generate_llm_suggestions()
         
         logger.info(f"Cluster analysis complete. Generated {len([s for s in self.suggestions.values() if not s.acknowledged])} new suggestions")
-    
-    # --- Built-in Analyzers ---
-    
-    async def _analyze_resource_requests_limits(self):
-        """Analyze resource requests and limits"""
-        # In a real implementation, this would query the Kubernetes API
-        # For now, we'll just add some example suggestions
+    async def _generate_llm_suggestions(self):
+        """Generate suggestions using the OpenAI LLM."""
+        if not self.openai_service:
+            logger.error("OpenAI service is not initialized.")
+            return
+
+        prompt = """
+        As an expert Kubernetes operations assistant, analyze a hypothetical cluster and provide 3-5 actionable suggestions to improve its cost-optimization, performance, security, and reliability.
+        For each suggestion, provide the following information in a JSON array format. Each object in the array should have these keys: "suggestion_id", "title", "description", "category", "severity".
+
+        - suggestion_id: A unique snake_case string identifier.
+        - title: A brief, descriptive title.
+        - description: A detailed explanation of the issue and the recommended action.
+        - category: One of 'cost_optimization', 'performance', 'security', 'reliability', 'best_practices'.
+        - severity: One of 'info', 'warning', 'critical'.
+
+        Return only the JSON array.
+        """
+
+        try:
+            response_str = self.openai_service.get_completion(prompt, max_tokens=1000)
+            suggestions_data = json.loads(response_str)
+
+            for item in suggestions_data:
+                self._add_suggestion(
+                    suggestion_id=item.get('suggestion_id', f"llm_suggestion_{datetime.utcnow().timestamp()}"),
+                    title=item.get('title', 'LLM Suggestion'),
+                    description=item.get('description', 'No description provided.'),
+                    category=SuggestionCategory(item.get('category', 'best_practices')),
+                    severity=SuggestionSeverity(item.get('severity', 'info'))
+                )
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode LLM response as JSON: {e}\nResponse was: {response_str}")
+        except Exception as e:
+            logger.error(f"Error generating LLM suggestions: {e}", exc_info=True)
+
+    # --- Helper Methods ---
+
+    def _add_suggestion(self, 
+                        suggestion_id: str, 
+                        title: str, 
+                        description: str, 
+                        category: SuggestionCategory, 
+                        severity: SuggestionSeverity = SuggestionSeverity.INFO, 
+                        resource_type: Optional[str] = None, 
+                        resource_name: Optional[str] = None, 
+                        namespace: Optional[str] = None, 
+                        details: Optional[Dict[str, Any]] = None, 
+                        actions: Optional[List[Dict[str, Any]]] = None):
+        """Add a new suggestion to the list"""
         
-        # Example: Missing resource requests/limits
-        self._add_suggestion(
-            suggestion_id="missing_requests_limits_123",
-            title="Missing resource requests and limits",
-            description="Pod 'example-pod' is missing resource requests and limits",
-            category=SuggestionCategory.BEST_PRACTICES,
-            severity=SuggestionSeverity.WARNING,
-            resource_type="pod",
-            resource_name="example-pod",
-            namespace="default",
-            actions=[
-                {
-                    "name": "Set requests and limits",
-                    "description": "Configure resource requests and limits for the pod",
-                    "action": "patch_pod",
-                    "parameters": {
-                        "name": "example-pod",
-                        "namespace": "default",
-                        "patch": {
-                            "spec": {
-                                "containers": [
-                                    {
-                                        "name": "example-container",
-                                        "resources": {
-                                            "requests": {
-                                                "cpu": "100m",
-                                                "memory": "128Mi"
-                                            },
-                                            "limits": {
-                                                "cpu": "500m",
-                                                "memory": "512Mi"
-                                            }
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                }
-            ]
+        if suggestion_id in self.suggestions:
+            logger.warning(f"Suggestion {suggestion_id} already exists. Skipping.")
+            return
+        
+        suggestion = Suggestion(
+            suggestion_id=suggestion_id,
+            title=title,
+            description=description,
+            category=category,
+            severity=severity,
+            resource_type=resource_type,
+            resource_name=resource_name,
+            namespace=namespace,
+            details=details,
+            actions=actions
         )
-    
-    async def _analyze_pod_restarts(self):
-        """Analyze pod restarts"""
-        # Example: Pod with many restarts
-        self._add_suggestion(
-            suggestion_id="pod_restarts_456",
-            title="Frequent pod restarts",
-            description="Pod 'crashed-app' has restarted 15 times in the last hour",
-            category=SuggestionCategory.RELIABILITY,
-            severity=SuggestionSeverity.WARNING,
-            resource_type="pod",
-            resource_name="crashed-app",
-            namespace="production",
-            details={
-                "restart_count": 15,
-                "time_window": "1 hour"
-            }
-        )
-    
-    async def _analyze_node_utilization(self):
-        """Analyze node resource utilization"""
-        # Example: Node with high CPU usage
-        self._add_suggestion(
-            suggestion_id="high_cpu_usage_789",
-            title="High CPU usage on node",
-            description="Node 'worker-1' has high CPU usage (92%)",
-            category=SuggestionCategory.PERFORMANCE,
-            severity=SuggestionSeverity.WARNING,
-            resource_type="node",
-            resource_name="worker-1",
-            details={
-                "cpu_usage_percent": 92,
-                "memory_usage_percent": 65
-            },
-            actions=[
-                {
-                    "name": "View node metrics",
-                    "description": "View detailed metrics for this node",
-                    "action": "view_metrics",
-                    "parameters": {
-                        "resource_type": "node",
-                        "resource_name": "worker-1"
-                    }
-                },
-                {
-                    "name": "Add node",
-                    "description": "Add a new node to the cluster",
-                    "action": "add_node",
-                    "parameters": {}
-                }
-            ]
-        )
-    
-    async def _analyze_image_tags(self):
-        """Analyze container image tags"""
-        # Example: Using latest tag
-        self._add_suggestion(
-            suggestion_id="latest_tag_101",
-            title="Container using 'latest' tag",
-            description="Container 'frontend' is using the 'latest' tag which can lead to inconsistent behavior",
-            category=SuggestionCategory.BEST_PRACTICES,
-            severity=SuggestionSeverity.INFO,
-            resource_type="deployment",
-            resource_name="frontend",
-            namespace="production"
-        )
-    
-    async def _analyze_pod_anti_affinity(self):
-        """Analyze pod anti-affinity rules"""
-        # Example: Missing pod anti-affinity
-        self._add_suggestion(
-            suggestion_id="missing_anti_affinity_202",
-            title="Missing pod anti-affinity",
-            description="Deployment 'redis' doesn't have pod anti-affinity rules which could lead to downtime",
-            category=SuggestionCategory.RELIABILITY,
-            severity=SuggestionSeverity.WARNING,
-            resource_type="deployment",
-            resource_name="redis",
-            namespace="production"
-        )
-    
+        
+        self.suggestions[suggestion_id] = suggestion
+    # Removed hardcoded suggestion analyzers
+
     # --- Helper Methods ---
     
     def _add_suggestion(self, 

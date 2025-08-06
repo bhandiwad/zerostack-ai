@@ -19,6 +19,7 @@ class KubernetesClient:
         self.core_v1 = None
         self.apps_v1 = None
         self.custom_objects_api = None
+        self.connected = False
         self.initialize_client()
     
     def initialize_client(self):
@@ -33,18 +34,19 @@ class KubernetesClient:
                 config.load_kube_config()
                 logger.info("Loaded local Kubernetes config")
             except Exception as e:
-                logger.warning(f"Could not load Kubernetes config: {e}")
-                # For development, we'll simulate operations
+                logger.warning(f"Could not load Kubernetes config: {e}. Running in disconnected mode.")
+                self.connected = False
                 return
-        
+
         self.api_client = client.ApiClient()
         self.core_v1 = client.CoreV1Api()
         self.apps_v1 = client.AppsV1Api()
         self.custom_objects_api = client.CustomObjectsApi()
+        self.connected = True
     
     def is_connected(self):
         """Check if Kubernetes client is connected"""
-        return self.api_client is not None
+        return self.connected
     
     def get_cluster_info(self):
         """Get current cluster information"""

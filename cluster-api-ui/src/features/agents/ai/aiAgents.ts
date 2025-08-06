@@ -1,42 +1,26 @@
-import { AgentCapability } from '../types';
+import { AgentType, AIAgentConfig, AgentCapability } from '../types/agentTypes';
 
-export enum AgentType {
-  MONITORING = 'monitoring',
-  AUTOMATION = 'automation',
-  SECURITY = 'security',
-  ANALYTICS = 'analytics',
-  SUPPORT = 'support'
-}
+// Re-export types for backward compatibility
+export type { AIAgentConfig, AgentCapability };
+export { AgentType };
 
-export interface AIAgentConfig {
-  type: AgentType;
-  name: string;
-  description: string;
-  capabilities: AgentCapability[];
-  config: {
-    model?: string;
-    temperature?: number;
-    maxTokens?: number;
-    systemPrompt?: string;
-  };
-}
-
+// Add CUSTOM agent type configuration
 export const DEFAULT_AI_AGENT_CONFIGS: Record<AgentType, Omit<AIAgentConfig, 'type'>> = {
+  [AgentType.CUSTOM]: {
+    name: 'Custom Agent',
+    description: 'A custom-configured agent',
+    capabilities: [],
+    config: {
+      model: 'gpt-4',
+      temperature: 0.5,
+      maxTokens: 1000,
+      systemPrompt: 'You are a custom-configured AI agent.'
+    }
+  },
   [AgentType.MONITORING]: {
     name: 'Monitoring Agent',
     description: 'Monitors cluster health and resources',
-    capabilities: [
-      {
-        name: 'cluster_health',
-        description: 'Check cluster health status',
-        config: { enabled: true }
-      },
-      {
-        name: 'resource_usage',
-        description: 'Monitor resource usage metrics',
-        config: { enabled: true }
-      }
-    ],
+    capabilities: ['cluster_health', 'resource_usage'],
     config: {
       model: 'gpt-4',
       temperature: 0.2,
@@ -47,18 +31,7 @@ export const DEFAULT_AI_AGENT_CONFIGS: Record<AgentType, Omit<AIAgentConfig, 'ty
   [AgentType.AUTOMATION]: {
     name: 'Automation Agent',
     description: 'Automates cluster operations and workflows',
-    capabilities: [
-      {
-        name: 'workflow_execution',
-        description: 'Execute predefined workflows',
-        config: { enabled: true }
-      },
-      {
-        name: 'scheduled_tasks',
-        description: 'Manage scheduled automation tasks',
-        config: { enabled: true }
-      }
-    ],
+    capabilities: ['workflow_automation', 'self_healing'],
     config: {
       model: 'gpt-4',
       temperature: 0.3,
@@ -68,19 +41,8 @@ export const DEFAULT_AI_AGENT_CONFIGS: Record<AgentType, Omit<AIAgentConfig, 'ty
   },
   [AgentType.SECURITY]: {
     name: 'Security Agent',
-    description: 'Monitors and enforces security policies',
-    capabilities: [
-      {
-        name: 'vulnerability_scanning',
-        description: 'Scan for security vulnerabilities',
-        config: { enabled: true }
-      },
-      {
-        name: 'compliance_checks',
-        description: 'Run compliance checks against policies',
-        config: { enabled: true }
-      }
-    ],
+    description: 'Enhances cluster security and compliance',
+    capabilities: ['vulnerability_scanning', 'compliance_checks'],
     config: {
       model: 'gpt-4',
       temperature: 0.1,
@@ -90,19 +52,8 @@ export const DEFAULT_AI_AGENT_CONFIGS: Record<AgentType, Omit<AIAgentConfig, 'ty
   },
   [AgentType.ANALYTICS]: {
     name: 'Analytics Agent',
-    description: 'Analyzes cluster metrics and provides insights',
-    capabilities: [
-      {
-        name: 'performance_analysis',
-        description: 'Analyze cluster performance metrics',
-        config: { enabled: true }
-      },
-      {
-        name: 'anomaly_detection',
-        description: 'Detect anomalies in cluster behavior',
-        config: { enabled: true }
-      }
-    ],
+    description: 'Analyzes cluster metrics and logs',
+    capabilities: ['metrics_analysis', 'log_analysis'],
     config: {
       model: 'gpt-4',
       temperature: 0.3,
@@ -112,19 +63,8 @@ export const DEFAULT_AI_AGENT_CONFIGS: Record<AgentType, Omit<AIAgentConfig, 'ty
   },
   [AgentType.SUPPORT]: {
     name: 'Support Agent',
-    description: 'Provides assistance and troubleshooting',
-    capabilities: [
-      {
-        name: 'troubleshooting',
-        description: 'Help troubleshoot cluster issues',
-        config: { enabled: true }
-      },
-      {
-        name: 'documentation',
-        description: 'Provide documentation and guidance',
-        config: { enabled: true }
-      }
-    ],
+    description: 'Provides interactive assistance and troubleshooting',
+    capabilities: ['interactive_assistance', 'troubleshooting_guide'],
     config: {
       model: 'gpt-4',
       temperature: 0.7,

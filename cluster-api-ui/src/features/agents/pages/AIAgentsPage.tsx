@@ -4,7 +4,7 @@ import { useAIAgentContext } from '../context/AIAgentProvider';
 import {
   Box,
   Container,
-  Grid,
+
   Tabs,
   Tab,
   Paper,
@@ -36,7 +36,7 @@ const AIAgentsPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const { agentId } = useParams<{ agentId?: string }>();
-  const { agents, selectAgent, activeAgent } = useAIAgentContext();
+      const { selectAgent, activeAgent, refreshAgents } = useAIAgentContext();
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabValue>('dashboard');
@@ -71,8 +71,8 @@ const AIAgentsPage: React.FC = () => {
   };
 
   // Handle edit agent
-  const handleEditAgent = (id: string) => {
-    setEditingAgentId(id);
+  const handleEditAgent = (agent: { id: string }) => {
+    setEditingAgentId(agent.id);
     setIsFormOpen(true);
   };
 
@@ -99,6 +99,10 @@ const AIAgentsPage: React.FC = () => {
           <AIAgentList
             onSelectAgent={handleSelectAgent}
             onCreateAgent={handleCreateAgent}
+            onEditAgent={handleEditAgent}
+            onRefreshAgents={async () => {
+              await refreshAgents();
+            }}
           />
         );
       default:
@@ -219,7 +223,7 @@ const AIAgentsPage: React.FC = () => {
           {activeAgent && (
             <AIAgentDetails 
               agent={activeAgent} 
-              onEdit={handleEditAgent}
+              onEdit={() => handleEditAgent(activeAgent)}
               onClose={() => navigate('/agents')}
             />
           )}

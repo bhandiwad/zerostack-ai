@@ -877,21 +877,21 @@ function App() {
             <div className="alert-item warning">
               <div className="alert-content">
                 <h4>High CPU Usage</h4>
-                <p>Cluster 'production-web' CPU usage above 80%</p>
+                <p>Cluster &apos;production-web&apos; CPU usage above 80%</p>
                 <span className="alert-time">2 minutes ago</span>
               </div>
             </div>
             <div className="alert-item error">
               <div className="alert-content">
                 <h4>Node Failure</h4>
-                <p>Node 'worker-3' in cluster 'ml-training' is unresponsive</p>
+                <p>Node &apos;worker-3&apos; in cluster &apos;ml-training&apos; is unresponsive</p>
                 <span className="alert-time">15 minutes ago</span>
               </div>
             </div>
             <div className="alert-item info">
               <div className="alert-content">
                 <h4>Scaling Event</h4>
-                <p>Cluster 'api-backend' scaled from 3 to 5 nodes</p>
+                <p>Cluster &apos;api-backend&apos; scaled from 3 to 5 nodes</p>
                 <span className="alert-time">1 hour ago</span>
               </div>
             </div>

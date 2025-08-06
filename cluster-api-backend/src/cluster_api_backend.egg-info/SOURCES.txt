@@ -5,8 +5,10 @@ src/cluster_api_backend.egg-info/dependency_links.txt
 src/cluster_api_backend.egg-info/requires.txt
 src/cluster_api_backend.egg-info/top_level.txt
 src/models/__init__.py
-src/models/agent.py
+src/models/agent_models.py
 src/models/cloud_account.py
 src/models/cluster.py
 src/models/organization.py
+src/models/spot_instances.py
 src/models/user.py
+tests/test_spot_instances.py

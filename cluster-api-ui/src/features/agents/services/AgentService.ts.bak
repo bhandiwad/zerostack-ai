@@ -1,0 +1,508 @@
+import { 
+  Agent, 
+  AgentCapability, 
+  AgentMessage, 
+  Conversation, 
+  AgentAction, 
+  AgentStatus,
+  CapabilityInfo
+} from '../types';
+
+type SimplifiedAgentStatus = {
+  status: 'online' | 'offline' | 'busy' | 'error';
+  message?: string;
+};
+import { apiCall, ApiResponse } from '../../../utils/api';
+
+type ApiCallOptions = {
+  url?: string;
+  method?: string;
+  data?: any;
+  headers?: Record<string, string>;
+  params?: Record<string, any>;
+};
+import { API_BASE_URL } from '../../../config';
+
+// API endpoints
+const ENDPOINTS = {
+  AGENTS: `${API_BASE_URL}/agents`,
+  AGENT: (id: string) => `${API_BASE_URL}/agents/${id}`,
+  AGENT_STATUS: (id: string) => `${API_BASE_URL}/agents/${id}/status`,
+  AGENT_CAPABILITIES: (id: string) => `${API_BASE_URL}/agents/${id}/capabilities`,
+  AGENT_CAPABILITY: (agentId: string, capabilityName: string) => 
+    `${API_BASE_URL}/agents/${agentId}/capabilities/${capabilityName}`,
+  AGENT_ACTION: (agentId: string, action: string) => 
+    `${API_BASE_URL}/agents/${agentId}/actions/${action}`,
+  CONVERSATIONS: `${API_BASE_URL}/conversations`,
+  CONVERSATION: (id: string) => `${API_BASE_URL}/conversations/${id}`,
+  CONVERSATION_MESSAGES: (id: string) => `${API_BASE_URL}/conversations/${id}/messages`,
+  MESSAGES: `${API_BASE_URL}/messages`,
+  CAPABILITIES: `${API_BASE_URL}/capabilities`
+};
+
+class AgentService {
+  // Capability Management
+  async getAvailableCapabilities(): Promise<CapabilityInfo[]> {
+    try {
+      console.log('Fetching capabilities from /agents/capabilities');
+      const response = await apiCall<Array<{name: string, description: string}>>('/agents/capabilities');
+      
+      console.log('Capabilities API response:', response);
+      
+      if (!response) {
+        console.error('No response received from capabilities API');
+        return [];
+      }
+      
+      if (!response.success) {
+        console.error('API call was not successful:', response.error);
+        return [];
+      }
+      
+      if (!response.data) {
+        console.error('No data in the response');
+        return [];
+      }
+      
+      // Map the response data to match the CapabilityInfo interface
+      const capabilities: CapabilityInfo[] = Array.isArray(response.data) 
+        ? response.data.map((cap: {name: string, description: string}) => ({
+            name: cap.name,
+            description: cap.description || '',
+            actions: [] // Initialize with empty actions array
+          }))
+        : [];
+      
+      console.log('Mapped capabilities:', capabilities);
+      return capabilities;
+    } catch (error) {
+      console.error('Error fetching capabilities:', error);
+      throw error;
+    }
+  }
+
+  async getAgentCapabilities(agentId: string): Promise<CapabilityInfo[]> {
+    try {
+      console.log(`Fetching capabilities for agent ${agentId} from ${ENDPOINTS.AGENT_CAPABILITIES(agentId)}`);
+      
+      // Define the expected response type from the API
+      interface AgentCapabilityResponse {
+        name: string;
+        description: string;
+        actions?: string[];
+      }
+      
+      const response = await apiCall<AgentCapabilityResponse[]>(
+        ENDPOINTS.AGENT_CAPABILITIES(agentId)
+      );
+
+      console.log(`Agent capabilities API response for agent ${agentId}:`, response);
+
+      if (!response) {
+        console.error('No response received from agent capabilities API');
+        return [];
+      }
+
+      if (!response.success) {
+        console.error('API call was not successful:', response.error);
+        return [];
+      }
+
+      if (!response.data) {
+        console.error('No data in the response');
+        return [];
+      }
+
+      // Map the response to CapabilityInfo array
+      const capabilities = Array.isArray(response.data) 
+        ? response.data.map(cap => ({
+            name: cap.name,
+            description: cap.description || '',
+            actions: Array.isArray(cap.actions) ? cap.actions : []
+          }))
+        : [];
+      
+      console.log(`Mapped capabilities for agent ${agentId}:`, capabilities);
+      return capabilities;
+    } catch (error) {
+      console.error(`Failed to fetch capabilities for agent ${agentId}:`, error);
+      throw error;
+    }
+  }
+
+  async getCapabilityDetails(agentId: string, capabilityName: string): Promise<CapabilityInfo | null> {
+    try {
+      const response = await apiCall<{name: string, description: string, actions?: any[]}>(
+        ENDPOINTS.AGENT_CAPABILITY(agentId, capabilityName)
+      );
+
+      if (!response || !response.success || !response.data) {
+        console.error('Failed to fetch capability details:', response?.error);
+        return null;
+      }
+
+      // Map the response to CapabilityInfo
+      return {
+        name: response.data.name,
+        description: response.data.description || '',
+        actions: response.data.actions || []
+      };
+    } catch (error) {
+      console.error(`Failed to fetch capability ${capabilityName} for agent ${agentId}:`, error);
+      throw error;
+    }
+  }
+
+  async executeCapabilityAction(
+    agentId: string, 
+    capabilityName: string, 
+    action: string, 
+    parameters: Record<string, any> = {}
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await apiCall<{ success: boolean; data?: any; error?: string }>(
+        `${ENDPOINTS.AGENT_CAPABILITY(agentId, capabilityName)}/actions/${action}`,
+        {
+          method: 'POST',
+          data: parameters
+        }
+      );
+
+      if (!response.success) {
+        return {
+          success: false,
+          error: response.error || 'Failed to execute capability action'
+        };
+      }
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error(`Error executing capability action ${action} for agent ${agentId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Agent Management
+  private mapCapabilities(capabilities: any[] = []): AgentCapability[] {
+    if (!Array.isArray(capabilities)) {
+      console.warn('Expected capabilities to be an array, got:', capabilities);
+      return [];
+    }
+    
+    return capabilities.map(cap => {
+      // If it's already in the correct format, return as is
+      if ('name' in cap && 'description' in cap) {
+        return {
+          id: cap.id || cap.name,
+          name: cap.name,
+          description: cap.description || '',
+          config: cap.config || {},
+          enabled: cap.enabled !== false,
+          actions: Array.isArray(cap.actions) 
+            ? cap.actions.map((action: any) => ({
+                name: action.name,
+                description: action.description || '',
+                parameters: action.parameters || {}
+              }))
+            : []
+        };
+      }
+      
+      // Handle case where capability is just a string (capability name)
+      if (typeof cap === 'string') {
+        return {
+          id: cap,
+          name: cap,
+          description: '',
+          config: {},
+          enabled: true,
+          actions: []
+        };
+      }
+      
+      // Handle case where capability is an object with just config
+      if (cap.config) {
+        return {
+          id: cap.config.name || 'unknown',
+          name: cap.config.name || 'Unknown',
+          description: cap.config.description || '',
+          config: cap.config,
+          enabled: true,
+          actions: []
+        };
+      }
+      
+      // Fallback for unknown format
+      console.warn('Unknown capability format:', cap);
+      return {
+        id: 'unknown',
+        name: 'Unknown',
+        description: '',
+        config: {},
+        enabled: false,
+        actions: []
+      };
+    });
+  }
+
+  async getAllAgents(): Promise<Agent[]> {
+    try {
+      const response = await apiCall<Agent[]>(ENDPOINTS.AGENTS, {
+        method: 'GET'
+      });
+
+      if (!response.success || !response.data) {
+        console.error('Failed to fetch agents:', response.error);
+        return [];
+      }
+
+      // Ensure each agent has the expected structure
+      return response.data.map(agent => {
+        // Create a properly typed Agent object
+        const mappedAgent: Agent = {
+          id: agent.id,
+          name: agent.name,
+          description: agent.description || '',
+          status: agent.status || 'offline',
+          capabilities: this.mapCapabilities(agent.capabilities || []),
+          config: agent.config || {
+            enabled: true,
+            pollingInterval: 5000,
+            logLevel: 'info'
+          }
+        };
+
+        // Add optional properties if they exist
+        if (agent.version) {
+          mappedAgent.version = agent.version;
+        }
+        if (agent.metadata) {
+          mappedAgent.metadata = agent.metadata;
+        }
+        if (agent.actions) {
+          mappedAgent.actions = agent.actions;
+        }
+
+        return mappedAgent;
+      });
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      throw error;
+    }
+  }
+
+  async getAgentStatus(agentId: string): Promise<SimplifiedAgentStatus> {
+    try {
+      const response = await apiCall<SimplifiedAgentStatus>(
+        ENDPOINTS.AGENT_STATUS(agentId),
+        { method: 'GET' }
+      );
+
+      if (!response.success || !response.data) {
+        console.error('Failed to fetch agent status:', response.error);
+        return {
+          status: 'offline',
+          message: 'Failed to fetch agent status'
+        };
+      }
+
+      // Ensure the status is one of the valid values
+      const validStatuses = ['online', 'offline', 'busy', 'error'] as const;
+      const status = response.data.status;
+      
+      return {
+        status: validStatuses.includes(status as any) ? status as 'online' | 'offline' | 'busy' | 'error' : 'offline',
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error(`Failed to fetch status for agent ${agentId}:`, error);
+      return {
+        status: 'offline',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Conversation Management
+  async getAgentConversations(agentId: string): Promise<Conversation[]> {
+    try {
+      const response = await apiCall<{ conversations: any[] }>(
+        ENDPOINTS.CONVERSATIONS,
+        { params: { agentId } }
+      );
+
+      if (!response.success || !response.data) {
+        throw new Error('Failed to fetch conversations');
+      }
+
+      // Transform the response to match the Conversation type
+      return response.data.conversations.map((conv: any) => {
+        // Ensure messages is an array and transform each message
+        const messages: AgentMessage[] = Array.isArray(conv.messages)
+          ? conv.messages.map((msg: any) => ({
+              id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              content: msg.content || '',
+              sender: msg.sender || 'user',
+              timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+              conversationId: msg.conversationId || conv.id,
+              metadata: msg.metadata || {}
+            }))
+          : [];
+
+        return {
+          id: conv.id || `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          title: conv.title || 'New Conversation',
+          agentId: conv.agentId || agentId,
+          messages,
+          createdAt: conv.createdAt ? new Date(conv.createdAt) : new Date(),
+          updatedAt: conv.updatedAt ? new Date(conv.updatedAt) : new Date(),
+          metadata: conv.metadata || {}
+        };
+      });
+    } catch (error) {
+      console.error(`Failed to fetch conversations for agent ${agentId}:`, error);
+      return [];
+    }
+  }
+
+  async createConversation(agentId: string, title: string = 'New Conversation'): Promise<Conversation> {
+    try {
+      const response = await apiCall<Conversation>({
+        endpoint: ENDPOINTS.CONVERSATIONS,
+        method: 'POST',
+        data: {
+          agentId,
+          title,
+          messages: []
+        }
+      } as ApiCallOptions);
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to create conversation');
+      }
+
+      // Ensure all required fields are present
+      const conversation: Conversation = {
+        id: response.data.id,
+        title: response.data.title || title,
+        agentId: response.data.agentId || agentId,
+        messages: Array.isArray(response.data.messages) ? response.data.messages : [],
+        createdAt: response.data.createdAt || new Date(),
+        updatedAt: response.data.updatedAt || new Date(),
+        metadata: response.data.metadata || {}
+      };
+
+      return conversation;
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+      throw error;
+    }
+
+  }
+
+  async getAgentStatus(agentId: string): Promise<SimplifiedAgentStatus> {
+    try {
+      const response = await apiCall<SimplifiedAgentStatus>(
+        ENDPOINTS.AGENT_STATUS(agentId),
+        { method: 'GET' }
+      );
+
+      if (!response.success || !response.data) {
+        console.error('Failed to fetch agent status:', response.error);
+        return {
+          status: 'offline',
+          message: 'Failed to fetch agent status'
+        };
+      }
+
+      // Ensure the status is one of the valid values
+      const validStatuses = ['online', 'offline', 'busy', 'error'] as const;
+      const status = response.data.status;
+      
+      return {
+        status: validStatuses.includes(status as any) ? status as 'online' | 'offline' | 'busy' | 'error' : 'offline',
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error(`Failed to fetch status for agent ${agentId}:`, error);
+      return {
+        status: 'offline',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  async sendMessage(
+    agentId: string, 
+    content: string, 
+    conversationId?: string
+  ): Promise<AgentMessage> {
+    try {
+      // Create a new conversation if no ID is provided
+      let targetConversationId = conversationId;
+      if (!targetConversationId) {
+        const conversation = await this.createConversation(agentId, 'New Conversation');
+        targetConversationId = conversation.id;
+      }
+
+      const response = await apiCall<AgentMessage>({
+        endpoint: ENDPOINTS.CONVERSATION_MESSAGES(targetConversationId),
+        method: 'POST',
+        data: {
+          content,
+          sender: 'user',
+          timestamp: new Date().toISOString()
+        }
+      } as ApiCallOptions);
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to send message');
+      }
+
+      // Ensure all required fields are present
+      const message: AgentMessage = {
+        id: response.data.id || `msg-${Date.now()}`,
+        content: response.data.content || content,
+        sender: response.data.sender || 'user',
+        timestamp: response.data.timestamp ? new Date(response.data.timestamp) : new Date(),
+        conversationId: response.data.conversationId || targetConversationId,
+        metadata: response.data.metadata || {}
+      };
+
+      return message;
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      throw error;
+    }
+  }
+
+  // Agent Actions
+  async executeAgentAction(agentId: string, action: string, params: any = {}): Promise<any> {
+    try {
+      const response = await apiCall({
+        url: ENDPOINTS.AGENT_ACTION(agentId, action),
+        method: 'POST',
+        data: params,
+        headers: { 'Content-Type': 'application/json' }
+      } as ApiCallOptions);
+
+      if (!response || !response.success) {
+        throw new Error(response?.error || 'Failed to execute action');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to execute ${action} on agent ${agentId}:`, error);
+      throw error;
+      };
+    }
+  }
+}
+// Export a singleton instance
+export const agentService = new AgentService();

@@ -4,13 +4,10 @@ import './App.css';
 const API_BASE = 'http://localhost:5000/api';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
   const [clusters, setClusters] = useState([]);
   const [providers, setProviders] = useState([]);
-  const [cloudAccounts, setCloudAccounts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [selectedCluster, setSelectedCluster] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState('dashboard');
   const [operationInProgress, setOperationInProgress] = useState({});
   const [realTimeData, setRealTimeData] = useState({});
 
@@ -32,12 +29,7 @@ function App() {
           setProviders(providersData.data || []);
         }
 
-        // Fetch cloud accounts
-        const accountsResponse = await fetch(`${API_BASE}/cloud-accounts`);
-        if (accountsResponse.ok) {
-          const accountsData = await accountsResponse.json();
-          setCloudAccounts(accountsData.data || []);
-        }
+
       } catch (error) {
         console.error('Error fetching real-time data:', error);
       }
@@ -146,7 +138,7 @@ function App() {
   };
 
   const deleteCluster = async (clusterId) => {
-    if (!confirm('Are you sure you want to delete this cluster? This action cannot be undone.')) {
+    if (!confirm('<p>Are you sure you want to delete cluster &quot;{clusterToDelete.name}&quot;?</p> This action cannot be undone.')) {
       return;
     }
 
@@ -670,7 +662,7 @@ function App() {
                     <button 
                       className="quick-action-btn"
                       onClick={() => {
-                        setSelectedCluster(cluster);
+
                         setCurrentPage('cluster-details');
                       }}
                     >
@@ -690,7 +682,7 @@ function App() {
                 <div className="alert-icon">⚠️</div>
                 <div className="alert-content">
                   <h4>High CPU Usage</h4>
-                  <p>Cluster "production-web" CPU usage above 80%</p>
+                  <p>Cluster &quot;production-web&quot; CPU usage above 80%</p>
                   <span className="alert-time">5 minutes ago</span>
                 </div>
                 <button className="alert-action">Acknowledge</button>

@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useAIAgentContext } from '../context/AIAgentProvider';
 import { AgentType } from '../ai/aiAgents';
+import { AgentInstance } from '../ai/agentOrchestrator';
 import {
   Box,
-  Grid,
-  Paper,
   Typography,
   CircularProgress,
+  Paper,
   Chip,
   Divider,
   IconButton,
   Tooltip,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   Monitor as MonitorIcon,
@@ -21,7 +19,6 @@ import {
   Analytics as AnalyticsIcon,
   SupportAgent as SupportIcon,
   Refresh as RefreshIcon,
-  PlayArrow as ActiveIcon,
   Stop as InactiveIcon,
   Error as ErrorIcon,
   Warning as WarningIcon,
@@ -30,24 +27,30 @@ import {
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer } from 'recharts';
 
-const AgentTypeIcons = {
+const AgentTypeIcons: Record<AgentType, React.ElementType> = {
   [AgentType.MONITORING]: MonitorIcon,
   [AgentType.AUTOMATION]: AutomationIcon,
   [AgentType.SECURITY]: SecurityIcon,
   [AgentType.ANALYTICS]: AnalyticsIcon,
   [AgentType.SUPPORT]: SupportIcon,
+  [AgentType.CUSTOM]: InfoIcon,
 };
 
-const AgentTypeColors = {
+const AgentTypeColors: Record<AgentType, string> = {
   [AgentType.MONITORING]: '#4caf50', // Green
   [AgentType.AUTOMATION]: '#2196f3', // Blue
   [AgentType.SECURITY]: '#f44336', // Red
   [AgentType.ANALYTICS]: '#9c27b0', // Purple
   [AgentType.SUPPORT]: '#ff9800', // Orange
+  [AgentType.CUSTOM]: '#78909c', // Blue Grey
 };
 
-// Mock data for the charts
-const generateMockMetrics = (count = 10) => {
+interface Metric {
+  name: string;
+  value: number;
+}
+
+const generateMockMetrics = (count = 10): Metric[] => {
   return Array.from({ length: count }, (_, i) => ({
     name: `${i * 5}m`,
     value: Math.floor(Math.random() * 100),
@@ -55,27 +58,21 @@ const generateMockMetrics = (count = 10) => {
 };
 
 const AIAgentDashboard: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { agents, loading, error, refreshAgents, activeAgent } = useAIAgentContext();
-  const [metrics, setMetrics] = useState<Record<string, any[]>>({});
+  const { agents, loading, error, refreshAgents } = useAIAgentContext();
+  const [metrics, setMetrics] = useState<Record<string, Metric[]>>({});
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
   useEffect(() => {
     loadMetrics();
-    // Set up interval to refresh metrics every 30 seconds
     const interval = setInterval(loadMetrics, 30000);
     return () => clearInterval(interval);
   }, [agents]);
 
-  const loadMetrics = async () => {
-    // In a real app, this would fetch metrics from your backend
-    const newMetrics: Record<string, any[]> = {};
-    
+  const loadMetrics = () => {
+    const newMetrics: Record<string, Metric[]> = {};
     agents.forEach(agent => {
       newMetrics[agent.id] = generateMockMetrics();
     });
-    
     setMetrics(newMetrics);
     setLastRefreshed(new Date());
   };
@@ -85,9 +82,9 @@ const AIAgentDashboard: React.FC = () => {
     await loadMetrics();
   };
 
-  const getAgentStatus = (agent: any) => {
+  const getAgentStatus = (agent: AgentInstance) => {
     if (!agent.isActive) return 'inactive';
-    return agent.status?.health || 'healthy';
+    return agent.status || 'healthy';
   };
 
   const getStatusIcon = (status: string) => {
@@ -146,14 +143,13 @@ const AIAgentDashboard: React.FC = () => {
         </Box>
       </Box>
 
-      <Grid container spacing={3}>
-        {/* Agent Status Cards */}
-        {agents.map((agent) => {
+      <Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 3 }}>
+          {agents.map((agent) => {
           const status = getAgentStatus(agent);
           const Icon = AgentTypeIcons[agent.type as AgentType] || InfoIcon;
           
           return (
-            <Grid item xs={12} sm={6} md={4} key={agent.id}>
+            <Box key={agent.id}>
               <Paper
                 elevation={2}
                 sx={{
@@ -183,7 +179,7 @@ const AIAgentDashboard: React.FC = () => {
                       bgcolor: `${AgentTypeColors[agent.type as AgentType]}22`,
                       color: 'text.primary',
                       '& .MuiChip-icon': {
-                        color: status === 'healthy' ? 'success.main' : 
+                        color: status === 'healthy' ? 'success.main' :
                                status === 'degraded' ? 'warning.main' :
                                status === 'unhealthy' ? 'error.main' : 'text.disabled',
                       },
@@ -192,7 +188,7 @@ const AIAgentDashboard: React.FC = () => {
                 </Box>
                 
                 <Typography variant="body2" color="textSecondary" paragraph>
-                  {agent.config.description}
+                  {agent.description}
                 </Typography>
                 
                 <Divider sx={{ my: 1 }} />
@@ -230,10 +226,10 @@ const AIAgentDashboard: React.FC = () => {
                   </Typography>
                 </Box>
               </Paper>
-            </Grid>
+            </Box>
           );
         })}
-      </Grid>
+      </Box>
     </Box>
   );
 };

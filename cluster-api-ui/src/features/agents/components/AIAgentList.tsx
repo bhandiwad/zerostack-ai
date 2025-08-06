@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAIAgentContext } from '../context/AIAgentProvider';
-import { Agent, AgentStatus, AgentInstance } from '../types';
-import { agentService } from '../services/AgentService';
+
+import { AgentInstance } from '../ai/agentOrchestrator';
+
 import {
   List,
   ListItem,
@@ -25,7 +26,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  useTheme,
 } from '@mui/material';
 import {
   Monitor as MonitorIcon,
@@ -41,7 +41,6 @@ import {
   Edit as EditIcon,
   Refresh as RefreshIcon,
   Chat as ChatIcon,
-  Settings as SettingsIcon,
 } from '@mui/icons-material';
 
 // Define agent type configurations
@@ -96,7 +95,7 @@ const agentStatusDisplay = {
 
 interface AIAgentListProps {
   onSelectAgent: (agentId: string) => void;
-  onEditAgent: (agent: Agent) => void;
+  onEditAgent: (agent: AgentInstance) => void;
   onCreateAgent: () => void;
   onRefreshAgents: () => Promise<void>;
   loading?: boolean;
@@ -111,8 +110,8 @@ const AIAgentList: React.FC<AIAgentListProps> = ({
   loading = false,
   error: externalError,
 }) => {
-  const theme = useTheme();
-  const { agents } = useAIAgentContext() as { agents: AgentInstance[] };
+
+  const { agents } = useAIAgentContext();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedAgent, setSelectedAgent] = useState<AgentInstance | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -283,7 +282,7 @@ const AIAgentList: React.FC<AIAgentListProps> = ({
                       overflow: 'hidden',
                     }}
                   >
-                    {agent.metadata?.description || 'No description provided'}
+                    {agent.description || 'No description provided'}
                   </Typography>
                 }
               />
@@ -375,7 +374,7 @@ const AIAgentList: React.FC<AIAgentListProps> = ({
         <DialogTitle>Delete Agent</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the agent "{selectedAgent?.name}"? 
+            Are you sure you want to delete the agent &quot;{selectedAgent?.name}&quot;? 
             This action cannot be undone.
           </DialogContentText>
         </DialogContent>

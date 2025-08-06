@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme, Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, Button, Paper, Divider, Grid, Alert } from '@mui/material';
+import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, Button, Paper, Divider, Alert } from '@mui/material';
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import { Agent, AgentConfig, AgentCapability } from '../types';
+import { Agent, AgentConfig as AgentConfigType } from '../types';
 
 interface AgentConfigProps {
   agent: Agent;
-  onSave: (config: AgentConfig) => Promise<void>;
+  onSave: (config: AgentConfigType) => Promise<void>;
   onRefresh: () => Promise<void>;
   disabled?: boolean;
 }
 
 const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, disabled = false }) => {
-  const theme = useTheme();
-  const [config, setConfig] = useState<AgentConfig>({ ...agent.config });
+  
+  const [config, setConfig] = useState<AgentConfigType>({ ...agent.config });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -21,7 +21,7 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
     setConfig({ ...agent.config });
   }, [agent]);
 
-  const handleChange = (field: string, value: any) => {
+    const handleChange = (field: string, value: string | number | boolean) => {
     setConfig(prev => ({
       ...prev,
       [field]: value
@@ -52,7 +52,7 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
       await onRefresh();
       setSuccess('Configuration refreshed');
       setTimeout(() => setSuccess(null), 2000);
-    } catch (err) {
+    } catch {
       setError('Failed to refresh configuration');
     }
   };
@@ -62,8 +62,8 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
     switch (agent.metadata?.type) {
       case 'monitoring':
         return (
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+            <Box sx={{ flex: 1 }}>
               <TextField
                 fullWidth
                 label="Metrics Collection Interval (seconds)"
@@ -73,8 +73,8 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
                 disabled={disabled || isSaving}
                 margin="normal"
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+            </Box>
+            <Box sx={{ flex: 1 }}>
               <FormControl fullWidth margin="normal">
                 <InputLabel>Log Level</InputLabel>
                 <Select
@@ -90,14 +90,14 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         );
       
       case 'security':
         return (
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+            <Box sx={{ flex: 1 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -109,8 +109,8 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
                 label="Enable Compliance Checks"
                 sx={{ mt: 2 }}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+            </Box>
+            <Box sx={{ flex: 1 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -122,8 +122,8 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
                 label="Enable Vulnerability Scans"
                 sx={{ mt: 2 }}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         );
       
       // Add more agent types as needed
@@ -173,8 +173,8 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
       )}
       
       <form onSubmit={handleSubmit}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ flex: 1 }}>
             <FormControlLabel
               control={
                 <Switch
@@ -186,9 +186,9 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
               label="Agent Enabled"
               sx={{ mb: 2 }}
             />
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} sm={6}>
+          <Box sx={{ flex: 1 }}>
             <TextField
               fullWidth
               label="Polling Interval (seconds)"
@@ -198,8 +198,8 @@ const AgentConfig: React.FC<AgentConfigProps> = ({ agent, onSave, onRefresh, dis
               disabled={disabled || isSaving}
               margin="normal"
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
         
         {getAgentSpecificFields()}
         

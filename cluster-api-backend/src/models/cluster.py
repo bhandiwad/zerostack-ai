@@ -1,44 +1,54 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
+from sqlalchemy import Column, String, Integer, Float, Boolean, Text, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
 
-db = SQLAlchemy()
+# Import the base model
+from .base_model import Base, BaseModel
 
-class Cluster(db.Model):
+class Cluster(Base):
+    """Model representing a Kubernetes cluster"""
     __tablename__ = 'clusters'
     
-    id = db.Column(db.String(36), primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
-    provider = db.Column(db.String(50), nullable=False)  # aws, gcp, azure, vmware, on-premises, sify
-    region = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, running, failed, stopped, scaling
-    version = db.Column(db.String(20), nullable=False)
-    node_count = db.Column(db.Integer, nullable=False, default=1)
-    topology = db.Column(db.String(50), nullable=False)  # single-master, multi-master, all-in-one, custom
+    id = Column(String(36), primary_key=True)
+    name = Column(String(100), nullable=False, unique=True)
+    provider = Column(String(50), nullable=False)  # aws, gcp, azure, vmware, on-premises, sify
+    region = Column(String(100), nullable=False)
+    status = Column(String(20), nullable=False, default='pending')  # pending, running, failed, stopped, scaling
+    version = Column(String(20), nullable=False)
+    node_count = Column(Integer, nullable=False, default=1)
+    topology = Column(String(50), nullable=False)  # single-master, multi-master, all-in-one, custom
     
     # Resource specifications
-    cpu_cores = db.Column(db.Integer, nullable=False, default=2)
-    memory_gb = db.Column(db.Integer, nullable=False, default=4)
-    storage_gb = db.Column(db.Integer, nullable=False, default=20)
-    gpu_count = db.Column(db.Integer, nullable=False, default=0)
-    gpu_type = db.Column(db.String(50), nullable=True)  # nvidia-t4, nvidia-v100, nvidia-a100, etc.
+    cpu_cores = Column(Integer, nullable=False, default=2)
+    memory_gb = Column(Integer, nullable=False, default=4)
+    storage_gb = Column(Integer, nullable=False, default=20)
+    gpu_count = Column(Integer, nullable=False, default=0)
+    gpu_type = Column(String(50), nullable=True)  # nvidia-t4, nvidia-v100, nvidia-a100, etc.
     
     # Cost information
-    hourly_cost = db.Column(db.Float, nullable=False, default=0.0)
-    monthly_cost = db.Column(db.Float, nullable=False, default=0.0)
+    hourly_cost = Column(Float, nullable=False, default=0.0)
+    monthly_cost = Column(Float, nullable=False, default=0.0)
     
     # Configuration as JSON
-    configuration = db.Column(db.Text, nullable=True)  # JSON string
-    
-    # Timestamps
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    configuration = Column(Text, nullable=True)  # JSON string
     
     # Cloud account reference
-    cloud_account_id = db.Column(db.String(36), nullable=True)
+    cloud_account_id = Column(String(36), ForeignKey('cloud_accounts.id'), nullable=True)
     
     # User who created the cluster
-    created_by = db.Column(db.String(100), nullable=False, default='admin')
+    created_by = Column(String(100), nullable=False, default='admin')
+    
+    # Relationships
+    spot_config = relationship(
+        "SpotInstanceConfig", 
+        back_populates="cluster", 
+        uselist=False, 
+        cascade="all, delete-orphan",
+        foreign_keys="[SpotInstanceConfig.cluster_id]"
+    )
+    metrics = relationship("ClusterMetrics", back_populates="cluster")
+    alerts = relationship("Alert", back_populates="cluster")
     
     def to_dict(self):
         config = {}
@@ -77,23 +87,23 @@ class Cluster(db.Model):
             'createdBy': self.created_by
         }
 
-class ClusterMetrics(db.Model):
+class ClusterMetrics(Base):
+    """Model representing cluster metrics"""
     __tablename__ = 'cluster_metrics'
     
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    cluster_id = db.Column(db.String(36), db.ForeignKey('clusters.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cluster_id = Column(String(36), ForeignKey('clusters.id'), nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
+    cpu_usage = Column(Float, nullable=False, default=0.0)
+    memory_usage = Column(Float, nullable=False, default=0.0)
+    storage_usage = Column(Float, nullable=False, default=0.0)
+    network_in = Column(Float, nullable=False, default=0.0)
+    network_out = Column(Float, nullable=False, default=0.0)
+    gpu_usage = Column(Float, nullable=True)
+    gpu_memory_usage = Column(Float, nullable=True)
     
-    # Resource utilization metrics
-    cpu_usage = db.Column(db.Float, nullable=False, default=0.0)  # percentage
-    memory_usage = db.Column(db.Float, nullable=False, default=0.0)  # percentage
-    storage_usage = db.Column(db.Float, nullable=False, default=0.0)  # percentage
-    network_in = db.Column(db.Float, nullable=False, default=0.0)  # MB/s
-    network_out = db.Column(db.Float, nullable=False, default=0.0)  # MB/s
-    
-    # GPU metrics (if applicable)
-    gpu_usage = db.Column(db.Float, nullable=True)  # percentage
-    gpu_memory_usage = db.Column(db.Float, nullable=True)  # percentage
+    # Relationships
+    cluster = relationship("Cluster", back_populates="metrics")
     
     def to_dict(self):
         return {
@@ -112,17 +122,21 @@ class ClusterMetrics(db.Model):
             } if self.gpu_usage is not None else None
         }
 
-class Alert(db.Model):
+class Alert(Base):
+    """Model representing cluster alerts"""
     __tablename__ = 'alerts'
     
-    id = db.Column(db.String(36), primary_key=True)
-    cluster_id = db.Column(db.String(36), db.ForeignKey('clusters.id'), nullable=False)
-    severity = db.Column(db.String(20), nullable=False)  # info, warning, error
-    message = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    dismissed = db.Column(db.Boolean, nullable=False, default=False)
-    dismissed_at = db.Column(db.DateTime, nullable=True)
-    dismissed_by = db.Column(db.String(100), nullable=True)
+    id = Column(String(36), primary_key=True)
+    cluster_id = Column(String(36), ForeignKey('clusters.id'), nullable=False)
+    severity = Column(String(20), nullable=False)  # info, warning, error, critical
+    message = Column(Text, nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
+    dismissed = Column(Boolean, nullable=False, default=False)
+    dismissed_at = Column(DateTime, nullable=True)
+    dismissed_by = Column(String(100), nullable=True)
+    
+    # Relationships
+    cluster = relationship("Cluster", back_populates="alerts")
     
     def to_dict(self):
         return {
@@ -136,29 +150,23 @@ class Alert(db.Model):
             'dismissedBy': self.dismissed_by
         }
 
-class CloudAccount(db.Model):
+class CloudAccount(Base):
+    """Model representing cloud provider accounts"""
     __tablename__ = 'cloud_accounts'
     
-    id = db.Column(db.String(36), primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    provider = db.Column(db.String(50), nullable=False)  # aws, gcp, azure, vmware, on-premises, sify
+    id = Column(String(36), primary_key=True)
+    name = Column(String(100), nullable=False)
+    provider = Column(String(50), nullable=False)  # aws, gcp, azure, etc.
+    credentials = Column(Text, nullable=False)  # Encrypted credentials
+    account_id = Column(String(100), nullable=True)
+    default_region = Column(String(100), nullable=True)
+    status = Column(String(20), nullable=False, default='pending')  # pending, active, error
+    last_validated = Column(DateTime, nullable=True)
+    validation_error = Column(Text, nullable=True)
+    created_by = Column(String(100), nullable=False, default='admin')
     
-    # Encrypted credentials (in production, use proper encryption)
-    credentials = db.Column(db.Text, nullable=False)  # JSON string with encrypted credentials
-    
-    # Account metadata
-    account_id = db.Column(db.String(100), nullable=True)  # Provider-specific account ID
-    default_region = db.Column(db.String(100), nullable=True)
-    
-    # Status and validation
-    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, active, error
-    last_validated = db.Column(db.DateTime, nullable=True)
-    validation_error = db.Column(db.Text, nullable=True)
-    
-    # Timestamps
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by = db.Column(db.String(100), nullable=False, default='admin')
+    # Relationships
+    clusters = relationship("Cluster", backref="cloud_account")
     
     def to_dict(self, include_credentials=False):
         result = {
@@ -183,35 +191,34 @@ class CloudAccount(db.Model):
                 
         return result
 
-class ProviderFlavor(db.Model):
+class ProviderFlavor(Base):
+    """Model representing cloud provider instance types/flavors"""
     __tablename__ = 'provider_flavors'
     
-    id = db.Column(db.String(100), primary_key=True)  # e.g., aws-t3.medium, sify-gpu-v100
-    provider = db.Column(db.String(50), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    display_name = db.Column(db.String(200), nullable=False)
+    id = Column(String(100), primary_key=True)  # e.g., 'aws-t3.medium', 'gcp-n1-standard-2'
+    provider = Column(String(50), nullable=False)  # aws, gcp, azure, etc.
+    name = Column(String(100), nullable=False)  # e.g., 't3.medium', 'n1-standard-2'
+    display_name = Column(String(200), nullable=False)  # e.g., 'T3 Medium', 'N1 Standard 2'
     
     # Resource specifications
-    cpu_cores = db.Column(db.Integer, nullable=False)
-    memory_gb = db.Column(db.Integer, nullable=False)
-    storage_gb = db.Column(db.Integer, nullable=False, default=20)
+    cpu_cores = Column(Integer, nullable=False)
+    memory_gb = Column(Integer, nullable=False)  # RAM in GB
+    storage_gb = Column(Integer, nullable=False, default=20)  # Default storage in GB
+    gpu_count = Column(Integer, nullable=False, default=0)
+    gpu_type = Column(String(50), nullable=True)  # e.g., 'NVIDIA T4', 'NVIDIA V100'
+    gpu_memory_gb = Column(Integer, nullable=True)  # GPU memory in GB
     
-    # GPU specifications
-    gpu_count = db.Column(db.Integer, nullable=False, default=0)
-    gpu_type = db.Column(db.String(50), nullable=True)
-    gpu_memory_gb = db.Column(db.Integer, nullable=True)
+    # Cost information (per hour in USD)
+    hourly_cost = Column(Float, nullable=False)
+    monthly_cost = Column(Float, nullable=False)  # Calculated as hourly_cost * 730 (avg hours in month)
     
-    # Pricing
-    hourly_cost = db.Column(db.Float, nullable=False)
-    monthly_cost = db.Column(db.Float, nullable=False)
-    
-    # Availability
-    regions = db.Column(db.Text, nullable=False)  # JSON array of available regions
-    available = db.Column(db.Boolean, nullable=False, default=True)
+    # Regions where this flavor is available (comma-separated)
+    regions = Column(Text, nullable=False)  # JSON array of region names
     
     # Metadata
-    category = db.Column(db.String(50), nullable=False, default='general')  # general, compute, memory, gpu, storage
-    description = db.Column(db.Text, nullable=True)
+    available = Column(Boolean, nullable=False, default=True)  # If false, this flavor is not available for selection
+    category = Column(String(50), nullable=False, default='general')  # general, compute-optimized, memory-optimized, etc.
+    description = Column(Text, nullable=True)
     
     def to_dict(self):
         regions_list = []

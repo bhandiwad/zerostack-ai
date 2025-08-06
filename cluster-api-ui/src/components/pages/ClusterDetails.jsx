@@ -12,8 +12,7 @@ const ClusterDetails = () => {
   const [error, setError] = useState(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [upgradeInProgress, setUpgradeInProgress] = useState(false);
-  const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
-  const [maintenanceInProgress, setMaintenanceInProgress] = useState(false);
+
 
   useEffect(() => {
     const fetchCluster = async () => {
@@ -222,7 +221,7 @@ const ClusterDetails = () => {
                 variant="outlined" 
                 color={cluster.maintenance_mode ? 'primary' : 'inherit'}
                 fullWidth 
-                onClick={() => setShowMaintenanceDialog(true)}
+                onClick={() => {}}
                 sx={{ justifyContent: 'flex-start' }}
               >
                 {cluster.maintenance_mode ? 'Disable Maintenance Mode' : 'Enable Maintenance Mode'}

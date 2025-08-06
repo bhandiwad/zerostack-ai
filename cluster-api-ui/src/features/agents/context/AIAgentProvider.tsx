@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import useAIAgents from '../hooks/useAIAgents';
-import { AgentInstance } from '../ai/agentOrchestrator';
+import { AgentInstance, AgentType, AIAgentConfig } from '../ai/agentOrchestrator';
 
 interface AIAgentContextType {
   // Agent management
@@ -10,11 +10,12 @@ interface AIAgentContextType {
   error: string | null;
   
   // Agent operations
-  createAgent: (type: string, config?: any) => Promise<AgentInstance>;
+  loadAgents: () => Promise<AgentInstance[]>;
+  createAgent: (type: AgentType, config: Partial<AIAgentConfig>) => Promise<AgentInstance>;
   updateAgent: (id: string, updates: Partial<AgentInstance>) => Promise<AgentInstance | null>;
   removeAgent: (id: string) => Promise<boolean>;
   selectAgent: (id: string | null) => void;
-  getAgentsByType: (type: string) => AgentInstance[];
+  getAgentsByType: (type: AgentType) => AgentInstance[];
   refreshAgents: () => Promise<AgentInstance[]>;
 }
 
