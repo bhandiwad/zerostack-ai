@@ -14,6 +14,11 @@ from .security_scanning import SecurityScanningCapability
 from .logging import LoggingCapability
 from .backup import BackupCapability
 from .audit import AuditCapability
+from .support_l1 import SupportL1Capability
+from .support_l2 import SupportL2Capability
+from .support_l3 import SupportL3Capability
+from .auto_scaling import AutoScalingCapability
+from .agent_training import AgentTrainingCapability
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,6 +33,11 @@ CAPABILITY_REGISTRY: Dict[str, Type[AgentCapability]] = {
     'logging': LoggingCapability,
     'backup': BackupCapability,
     'audit': AuditCapability,
+    'support_l1': SupportL1Capability,
+    'support_l2': SupportL2Capability,
+    'support_l3': SupportL3Capability,
+    'auto_scaling': AutoScalingCapability,
+    'agent_training': AgentTrainingCapability,
     # Add more capabilities here
 }
 
@@ -98,6 +108,14 @@ __all__ = [
     'AutomationCapability',
     'SuggestionsCapability',
     'SecurityScanningCapability',
+    'LoggingCapability',
+    'BackupCapability',
+    'AuditCapability',
+    'SupportL1Capability',
+    'SupportL2Capability',
+    'SupportL3Capability',
+    'AutoScalingCapability',
+    'AgentTrainingCapability',
     'get_capability',
     'list_capabilities',
     'create_capability',

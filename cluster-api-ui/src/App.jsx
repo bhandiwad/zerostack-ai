@@ -8,12 +8,11 @@ import './MaintenanceMode.css';
 import ClusterCreation from './ClusterCreation.jsx';
 import ClusterDetail from './pages/ClusterDetail';
 import { AgentProvider } from './features/agents';
-import AgentsDashboard from './features/agents/AgentsDashboard';
+import AIHub from './features/ai/AIHub';
 import ErrorBoundary from './components/ErrorBoundary';
 import CloudAccountManager from './pages/CloudAccounts/CloudAccountManager';
 import HelmApplicationsPage from './pages/HelmApplications/HelmApplicationsPage';
 import LoginForm from './components/auth/LoginForm';
-import Header from './components/layout/Header';
 import Dashboard from './components/dashboard/Dashboard';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
@@ -68,8 +67,6 @@ const App = () => {
       <ErrorBoundary componentName="AgentProvider">
         <AgentProvider>
           <div className="app">
-          <Header user={user} organization={organization} onLogout={handleLogout} />
-          
           <div className="app-content">
             <Navigation user={user} organization={organization} onLogout={handleLogout} />
 
@@ -96,7 +93,7 @@ const App = () => {
                 </div>
               } />
                 <Route path="/accounts" element={<CloudAccountManager />} />
-                <Route path="/agents" element={<AgentsDashboard />} />
+                <Route path="/agents/*" element={<AIHub />} />
                 <Route path="/applications" element={<HelmApplicationsPage />} />
               </Routes>
             </main>

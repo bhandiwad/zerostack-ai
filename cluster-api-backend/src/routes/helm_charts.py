@@ -61,7 +61,7 @@ def run_helm_command(command, *args):
             'returncode': e.returncode
         }
 
-@helm_charts_bp.route('/api/v1/helm/repositories', methods=['GET'])
+@helm_charts_bp.route('/v1/helm/repositories', methods=['GET'])
 @require_kube_connection
 def list_repositories():
     """List all Helm repositories"""
@@ -83,7 +83,7 @@ def list_repositories():
             'error': f'Failed to list repositories: {str(e)}'
         }), 500
 
-@helm_charts_bp.route('/api/v1/helm/repositories', methods=['POST'])
+@helm_charts_bp.route('/v1/helm/repositories', methods=['POST'])
 @require_kube_connection
 def add_repository():
     """Add a new Helm repository"""
@@ -118,7 +118,7 @@ def add_repository():
             'error': f'Failed to add repository: {str(e)}'
         }), 500
 
-@helm_charts_bp.route('/api/v1/helm/repositories/<string:name>', methods=['DELETE'])
+@helm_charts_bp.route('/v1/helm/repositories/<string:name>', methods=['DELETE'])
 @require_kube_connection
 def remove_repository(name):
     """Remove a Helm repository"""
@@ -139,7 +139,7 @@ def remove_repository(name):
             'error': f'Failed to remove repository: {str(e)}'
         }), 500
 
-@helm_charts_bp.route('/api/v1/helm/charts', methods=['GET'])
+@helm_charts_bp.route('/v1/helm/charts', methods=['GET'])
 @require_kube_connection
 def list_charts():
     """List all available charts in repositories"""

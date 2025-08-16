@@ -183,7 +183,7 @@ const ClusterManagement = () => {
     <div className="cluster-management">
       <div className="cluster-header">
         <h1>⚙️ Cluster Management</h1>
-        <p>Manage your Kubernetes clusters with ZeroStack AI – Zero Ops. Full Stack automation</p>
+        <p>Manage your Kubernetes clusters across multiple cloud providers with AI-powered automation</p>
       </div>
 
       <div className="cluster-stats">

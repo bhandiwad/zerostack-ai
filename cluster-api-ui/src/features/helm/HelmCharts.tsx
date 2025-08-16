@@ -104,15 +104,18 @@ const HelmCharts: React.FC<HelmChartsProps> = ({ cluster }) => {
       if (activeTab === 0) {
         // Fetch repositories
         const response = await helmChartsApi.listRepositories(cluster.id);
-        setRepositories(response.data || []);
+        // Ensure we extract repositories array from the response
+        setRepositories(Array.isArray(response.repositories) ? response.repositories : []);
       } else if (activeTab === 1) {
         // Fetch charts
         const response = await helmChartsApi.listCharts(cluster.id);
-        setCharts(response.data || []);
+        // Ensure we extract charts array from the response
+        setCharts(Array.isArray(response.charts) ? response.charts : []);
       } else if (activeTab === 2) {
         // Fetch releases
         const response = await helmChartsApi.listReleases(cluster.id);
-        setReleases(response.data || []);
+        // Ensure we extract releases array from the response
+        setReleases(Array.isArray(response.releases) ? response.releases : []);
       }
     } catch (error) {
       console.error('Error fetching data:', error);

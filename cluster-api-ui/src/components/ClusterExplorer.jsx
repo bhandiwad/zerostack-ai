@@ -172,34 +172,87 @@ const ClusterExplorer = ({ cluster, apiCall, showNotification }) => {
       {/* Header */}
       <div className="explorer-header">
         <div className="explorer-title">
-          <h2>Cluster Explorer</h2>
-          <span className="cluster-name">{cluster.name}</span>
+          <h1>🔍 Cluster Explorer</h1>
+          <p>Explore and manage Kubernetes resources with ZeroStack AI – Zero Ops. Full Stack insights</p>
         </div>
-        <div className="explorer-actions">
-          <button 
-            className="refresh-button"
-            onClick={loadResources}
-            disabled={loading}
-          >
-            {loading ? '🔄' : '🔄'} Refresh
-          </button>
+        <div className="cluster-info">
+          <div className="cluster-badge">
+            <span className="cluster-icon">⚙️</span>
+            <span className="cluster-name">{cluster.name}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Section */}
+      <div className="explorer-stats">
+        <div className="stat-card">
+          <div className="stat-icon">📦</div>
+          <div className="stat-content">
+            <h3>Namespaces</h3>
+            <div className="stat-value">{namespaces.length}</div>
+            <div className="stat-change">🏷️ Active</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">🟢</div>
+          <div className="stat-content">
+            <h3>Current Resource</h3>
+            <div className="stat-value">{resourceTypes.find(t => t.key === resourceType)?.label}</div>
+            <div className="stat-change">📊 Viewing</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">🔢</div>
+          <div className="stat-content">
+            <h3>Total Items</h3>
+            <div className="stat-value">{filteredResources.length}</div>
+            <div className="stat-change">📋 Found</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">🎯</div>
+          <div className="stat-content">
+            <h3>Namespace</h3>
+            <div className="stat-value">{selectedNamespace}</div>
+            <div className="stat-change">🏠 Selected</div>
+          </div>
         </div>
       </div>
 
       {/* Navigation */}
       <div className="explorer-navigation">
-        <div className="namespace-selector">
-          <label>Namespace:</label>
-          <select 
-            value={selectedNamespace} 
-            onChange={(e) => setSelectedNamespace(e.target.value)}
+        <div className="nav-controls">
+          <div className="namespace-selector">
+            <label>Namespace:</label>
+            <select 
+              value={selectedNamespace} 
+              onChange={(e) => setSelectedNamespace(e.target.value)}
+            >
+              {namespaces.map(ns => (
+                <option key={ns.name} value={ns.name}>
+                  {ns.name} {ns.status === 'Active' ? '✅' : '⚠️'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder={`Search ${resourceType}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <button 
+            className="refresh-button"
+            onClick={loadResources}
+            disabled={loading}
           >
-            {namespaces.map(ns => (
-              <option key={ns.name} value={ns.name}>
-                {ns.name} {ns.status === 'Active' ? '✅' : '⚠️'}
-              </option>
-            ))}
-          </select>
+            <span>🔄</span>
+            Refresh
+          </button>
         </div>
 
         <div className="resource-type-tabs">
@@ -213,15 +266,6 @@ const ClusterExplorer = ({ cluster, apiCall, showNotification }) => {
               <span className="tab-label">{type.label}</span>
             </button>
           ))}
-        </div>
-
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder={`Search ${resourceType}...`}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
         </div>
       </div>
 

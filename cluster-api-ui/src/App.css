@@ -178,6 +178,13 @@ body {
   background: #f7fafc;
 }
 
+
+/* App Content Layout */
+.app-content {
+  display: flex;
+  flex: 1;
+}
+
 /* Header Styles */
 .app-header {
   background: linear-gradient(135deg, #4CAF50, #2E7D32);
@@ -234,12 +241,6 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* App Content Layout */
-.app-content {
-  display: flex;
-  flex: 1;
-}
-
 /* Sidebar Styles */
 .sidebar {
   width: 250px;
@@ -274,11 +275,14 @@ body {
   font-weight: 600;
 }
 
-/* Main Content */
+/* Main Content Area */
 .main-content {
   flex: 1;
-  padding: 24px;
+  margin-left: 280px;
+  padding: 0;
   overflow-y: auto;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
 /* Page Headers */

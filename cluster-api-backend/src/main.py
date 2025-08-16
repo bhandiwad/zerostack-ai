@@ -26,6 +26,9 @@ from src.routes.clusters_multitenant import clusters_mt_bp
 from src.routes.agents import agents_bp
 from src.routes.cluster_explorer import cluster_explorer_bp
 from src.routes.helm_charts import helm_charts_bp
+from src.features.support.support_routes import support_bp
+from src.features.agents.training_routes import training_bp
+from src.features.agents.management_routes import management_bp
 
 def create_app(config_name='dev'):
     """Create and configure the Flask application"""
@@ -62,6 +65,9 @@ def create_app(config_name='dev'):
     app.register_blueprint(advanced_cluster_bp, url_prefix='/api')
     app.register_blueprint(clusters_mt_bp, url_prefix='/api/mt')
     app.register_blueprint(agents_bp, url_prefix='/api')
+    app.register_blueprint(support_bp, url_prefix='/api/support')
+    app.register_blueprint(training_bp, url_prefix='/api/agents/training')
+    app.register_blueprint(management_bp, url_prefix='/api/agents')
     
     # Health check endpoint
     @app.route('/api/health')
@@ -84,9 +90,13 @@ app = create_app(config_name)
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
+    # Don't intercept API routes - let the API blueprints handle those
+    if path.startswith('api/'):
+        return "Not found", 404
+        
     static_folder_path = app.static_folder
     if static_folder_path is None:
-            return "Static folder not configured", 404
+        return "Static folder not configured", 404
 
     if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
         return send_from_directory(static_folder_path, path)
