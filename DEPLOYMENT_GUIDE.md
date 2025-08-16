@@ -1,22 +1,24 @@
-# Cluster-API Management Console - Deployment Guide
+# ZeroStack AI - Deployment Guide
 
-## 🚀 Complete Production-Ready Application
+## 🚀 Zero Ops. Full Stack. Deployment
 
-This package contains a fully functional Cluster-API Management Console with cloud account management, dynamic provider integration, and comprehensive cluster operations.
+This comprehensive guide covers deploying ZeroStack AI, the intelligent Kubernetes management platform with AI-powered automation and multi-cloud orchestration.
 
 ## 📦 Package Contents
 
 ### Frontend (React Application)
 - **Location**: `cluster-api-ui/`
-- **Framework**: React 18 + Vite
-- **Styling**: Custom CSS with Sify branding
-- **Components**: Complete UI library with shadcn/ui
+- **Framework**: React 18 + Vite with modern hooks
+- **Styling**: ZeroStack AI design system with gradient aesthetics
+- **Components**: AI-powered components with real-time updates
+- **Features**: Intelligent dashboards, AI agent integration
 
-### Backend (Flask API Server)
+### Backend (Python/Flask API)
 - **Location**: `cluster-api-backend/`
-- **Framework**: Flask + SQLAlchemy
-- **Database**: SQLite (production-ready)
-- **Security**: Encrypted credential storage
+- **Framework**: Flask + SQLAlchemy with async support
+- **AI Engine**: OpenAI integration for intelligent automation
+- **Database**: PostgreSQL with Redis caching
+- **Security**: Multi-tenant RBAC with JWT authentication
 
 ## 🛠️ Quick Setup Instructions
 
@@ -71,31 +73,31 @@ pnpm run build
 # The built files will be in the 'dist' directory
 ```
 
-## 🌟 Key Features Implemented
+## 🤖 AI-Powered Features Implemented
 
-### ✅ Cloud Account Management
-- **Secure Credential Storage**: Encrypted with Fernet encryption
-- **Multi-Provider Support**: AWS, GCP, Azure, Sify Cloud, VMware, On-Premises
-- **Real-time Validation**: Test connections before saving
-- **Template System**: Dynamic authentication methods per provider
+### ✅ Intelligent Automation
+- **AI Agent System**: Multi-tier support agents (L1/L2/L3)
+- **Predictive Scaling**: Machine learning-based resource optimization
+- **Smart Security**: Automated threat detection and policy enforcement
+- **Auto-Healing**: Self-healing clusters with intelligent failure recovery
 
-### ✅ Dynamic Provider Integration
-- **No Hard-coding**: All VM types, regions fetched dynamically
-- **Cluster-API Integration**: Real provider API integration
-- **Caching System**: Intelligent caching with refresh capabilities
-- **GPU Support**: Full GPU instance support across providers
+### ✅ Zero Ops Experience
+- **Autonomous Operations**: AI-driven cluster lifecycle management
+- **Intelligent Insights**: AI-powered analytics and recommendations
+- **Proactive Support**: Automated issue detection and resolution
+- **Smart Deployments**: AI-optimized application deployment strategies
 
-### ✅ Cluster Management
-- **Creation Wizard**: Multi-step cluster creation with validation
-- **Topology Options**: Single Master, Multi-Master HA, All-in-One, Custom
-- **Version Selection**: Dynamic Kubernetes version fetching
-- **Cost Estimation**: Real-time pricing integration
+### ✅ Multi-Cloud Intelligence
+- **Unified Management**: Single pane across AWS, GCP, Azure, on-premises
+- **Cost Optimization**: AI-driven resource allocation and cost management
+- **Dynamic Scaling**: Context-aware auto-scaling based on workload patterns
+- **Security Automation**: Intelligent compliance and governance
 
-### ✅ Professional UI/UX
-- **Sify Branding**: Complete Sify Technologies styling
-- **Responsive Design**: Works on desktop, tablet, and mobile
-- **Modern Interface**: Professional dashboard and navigation
-- **Real-time Updates**: Live status and metrics
+### ✅ Modern ZeroStack UI/UX
+- **ZeroStack Branding**: Complete ZeroStack AI design system
+- **Gradient Aesthetics**: Modern, professional interface design
+- **AI-Enhanced UX**: Intelligent user interactions and recommendations
+- **Real-time Intelligence**: Live AI insights and predictive analytics
 
 ## 🔧 API Endpoints
 
@@ -170,15 +172,28 @@ pnpm run build
 ```bash
 # Backend Configuration
 FLASK_ENV=production
-DATABASE_URL=postgresql://user:pass@localhost/cluster_api
+DATABASE_URL=postgresql://user:pass@localhost/zerostack_ai
+REDIS_URL=redis://localhost:6379
 SECRET_KEY=your-secret-key
+JWT_SECRET_KEY=your-jwt-secret
 ENCRYPTION_KEY=your-encryption-key
 
-# Provider API Keys (optional)
+# AI Engine Configuration
+OPENAI_API_KEY=your-openai-key
+OPENAI_MODEL=gpt-4
+AI_AGENT_ENABLED=true
+
+# Multi-Cloud Provider API Keys
 AWS_ACCESS_KEY_ID=your-aws-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret
 GCP_SERVICE_ACCOUNT_JSON=your-gcp-json
 AZURE_CLIENT_ID=your-azure-client
-SIFY_API_KEY=your-sify-key
+AZURE_CLIENT_SECRET=your-azure-secret
+AZURE_TENANT_ID=your-azure-tenant
+
+# PagerDuty Integration
+PAGERDUTY_API_KEY=your-pagerduty-key
+PAGERDUTY_SERVICE_ID=your-service-id
 ```
 
 ### Frontend Configuration
