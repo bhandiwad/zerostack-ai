@@ -11,6 +11,8 @@ import { AgentProvider } from './features/agents';
 import AIHub from './features/ai/AIHub';
 import AIEndpointConfig from './features/ai/AIEndpointConfig';
 import WorkflowTester from './features/ai/WorkflowTester';
+import AgentPerformanceDashboard from './features/ai/AgentPerformanceDashboard';
+import WorkflowDesigner from './features/ai/WorkflowDesigner';
 import ErrorBoundary from './components/ErrorBoundary';
 import CloudAccountManager from './pages/CloudAccounts/CloudAccountManager';
 import HelmApplicationsPage from './pages/HelmApplications/HelmApplicationsPage';
@@ -21,6 +23,7 @@ import '@mantine/notifications/styles.css';
 
 // Refactored components
 import Navigation from './components/layout/Navigation';
+import Header from './components/layout/Header';
 import ClusterManagement from './components/clusters/ClusterManagement';
 
 // Main App Component
@@ -69,10 +72,10 @@ const App = () => {
       <ErrorBoundary componentName="AgentProvider">
         <AgentProvider>
           <div className="app">
-          <div className="app-content">
-            <Navigation user={user} organization={organization} onLogout={handleLogout} />
-
-            <main className="main-content">
+            <Header user={user} organization={organization} onLogout={handleLogout} />
+            <div className="app-content">
+              <Navigation user={user} organization={organization} />
+              <main className="main-content">
               <Routes>
               <Route path="/" element={<Dashboard organization={organization} />} />
               <Route path="/clusters" element={<ClusterManagement />} />
@@ -97,7 +100,9 @@ const App = () => {
                 <Route path="/accounts" element={<CloudAccountManager />} />
                 <Route path="/agents/*" element={<AIHub />} />
                 <Route path="/ai-config" element={<AIEndpointConfig />} />
-            <Route path="/workflow-tester" element={<WorkflowTester />} />
+                <Route path="/workflow-tester" element={<WorkflowTester />} />
+                <Route path="/agent-dashboard" element={<AgentPerformanceDashboard />} />
+                <Route path="/workflow-designer" element={<WorkflowDesigner />} />
                 <Route path="/applications" element={<HelmApplicationsPage />} />
               </Routes>
             </main>

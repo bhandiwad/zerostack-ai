@@ -2,6 +2,23 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Navigation.css';
 
+const NavItem = ({ to, icon, label, isActive }) => {
+  return (
+    <Link
+      to={to}
+      className={`nav-item ${isActive ? 'active' : ''}`}
+    >
+      <div className="nav-item-content">
+        <span className="nav-icon">{icon}</span>
+        <div className="nav-text">
+          <span className="nav-label">{label}</span>
+        </div>
+      </div>
+      {isActive && <div className="active-indicator" />}
+    </Link>
+  );
+};
+
 const Navigation = ({ user, organization, onLogout }) => {
   const location = window.location.pathname;
   const [collapsed, setCollapsed] = useState(false);
@@ -15,7 +32,6 @@ const Navigation = ({ user, organization, onLogout }) => {
     { path: '/', icon: '🏠', label: 'Home', description: 'Dashboard overview' },
     { path: '/agents', icon: '🤖', label: 'AI Agents', description: 'Intelligent automation' },
     { path: '/ai-config', icon: '🤖', label: 'AI Config', description: 'AI endpoint management' },
-    { path: '/workflow-tester', icon: '⚡', label: 'Workflow Tester', description: '' },
     { path: '/clusters', icon: '⚙️', label: 'Clusters', description: 'Kubernetes management' },
     { path: '/explorer', icon: '🔍', label: 'Explorer', description: 'Resource browser' },
     { path: '/applications', icon: '📱', label: 'Apps', description: 'Application catalog' },
@@ -67,27 +83,26 @@ const Navigation = ({ user, organization, onLogout }) => {
             </Link>
           );
         })}
+        <NavItem 
+          to="/workflow-tester" 
+          icon="🔄" 
+          label="Workflow Tester"
+          isActive={location.pathname === '/workflow-tester'}
+        />
+        <NavItem 
+          to="/agent-dashboard" 
+          icon="📊" 
+          label="Agent Dashboard"
+          isActive={location.pathname === '/agent-dashboard'}
+        />
+        <NavItem 
+          to="/workflow-designer" 
+          icon="🎨" 
+          label="Workflow Designer"
+          isActive={location.pathname === '/workflow-designer'}
+        />
       </div>
 
-      <div className="nav-footer">
-        <div className="user-section">
-          <div className="user-avatar">
-            <span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
-          </div>
-          {!collapsed && (
-            <div className="user-info">
-              <div className="user-name">{user?.name || 'User'}</div>
-              <div className="org-name">{organization?.name || 'Organization'}</div>
-            </div>
-          )}
-        </div>
-        {!collapsed && (
-          <button onClick={onLogout} className="logout-btn">
-            <span className="logout-icon">🚪</span>
-            Logout
-          </button>
-        )}
-      </div>
     </nav>
   );
 };

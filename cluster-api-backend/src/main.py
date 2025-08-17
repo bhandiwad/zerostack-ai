@@ -32,6 +32,10 @@ from src.features.agents.management_routes import management_bp
 from src.features.agents.ai_endpoint_routes import ai_endpoints_bp
 from src.features.agents.workflow_routes import workflow_bp
 from src.features.agents.memory_routes import memory_bp
+from src.features.agents.a2a_messaging_routes import a2a_bp
+from src.features.agents.learning_routes import learning_bp
+from src.features.agents.context_sharing_routes import context_bp
+from src.features.agents.workflow_designer_routes import workflow_designer_bp
 
 def create_app(config_name='dev'):
     """Create and configure the Flask application"""
@@ -63,17 +67,23 @@ def create_app(config_name='dev'):
     app.register_blueprint(cost_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(org_bp, url_prefix='/api')
-    app.register_blueprint(cluster_explorer_bp, url_prefix='/api')
-    app.register_blueprint(helm_charts_bp, url_prefix='/api')
     app.register_blueprint(advanced_cluster_bp, url_prefix='/api')
     app.register_blueprint(clusters_mt_bp, url_prefix='/api/mt')
-    app.register_blueprint(agents_bp, url_prefix='/api')
     app.register_blueprint(support_bp, url_prefix='/api/support')
     app.register_blueprint(training_bp, url_prefix='/api/agents/training')
     app.register_blueprint(management_bp, url_prefix='/api/agents')
     app.register_blueprint(ai_endpoints_bp)
     app.register_blueprint(workflow_bp)
     app.register_blueprint(memory_bp)
+    app.register_blueprint(a2a_bp)
+    app.register_blueprint(learning_bp)
+    app.register_blueprint(context_bp)
+    app.register_blueprint(workflow_designer_bp)
+    
+    app.register_blueprint(clusters_bp)
+    app.register_blueprint(agents_bp)
+    app.register_blueprint(cluster_explorer_bp)
+    app.register_blueprint(helm_charts_bp)
     
     # Health check endpoint
     @app.route('/api/health')
