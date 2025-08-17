@@ -9,6 +9,8 @@ import ClusterCreation from './ClusterCreation.jsx';
 import ClusterDetail from './pages/ClusterDetail';
 import { AgentProvider } from './features/agents';
 import AIHub from './features/ai/AIHub';
+import AIEndpointConfig from './features/ai/AIEndpointConfig';
+import WorkflowTester from './features/ai/WorkflowTester';
 import ErrorBoundary from './components/ErrorBoundary';
 import CloudAccountManager from './pages/CloudAccounts/CloudAccountManager';
 import HelmApplicationsPage from './pages/HelmApplications/HelmApplicationsPage';
@@ -94,6 +96,8 @@ const App = () => {
               } />
                 <Route path="/accounts" element={<CloudAccountManager />} />
                 <Route path="/agents/*" element={<AIHub />} />
+                <Route path="/ai-config" element={<AIEndpointConfig />} />
+            <Route path="/workflow-tester" element={<WorkflowTester />} />
                 <Route path="/applications" element={<HelmApplicationsPage />} />
               </Routes>
             </main>

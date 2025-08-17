@@ -112,25 +112,29 @@ npm run test:all           # Run all tests
 
 ### AI Agent Testing
 
-**L1 Support Agent:**
-- FAQ handling and basic troubleshooting
+**LangGraph Workflow Testing:**
+- Multi-agent orchestration workflows
+- State management and transitions
+- Workflow execution monitoring
+- Error handling and recovery
+
+**Vector Memory System Testing:**
+- ChromaDB integration and semantic search
+- Memory storage and retrieval operations
+- Performance analytics and insights
+- Context-aware agent responses
+
+**Multi-Provider AI Testing:**
+- OpenAI, Anthropic, Azure, Google, Cohere endpoint testing
+- API key encryption/decryption validation
+- Load balancing and failover testing
+- Response quality and consistency
+
+**L1/L2/L3 Support Agent Testing:**
+- Support escalation workflows
 - Query processing and response generation
-- Escalation logic to L2 agents
-
-**L2 Support Agent:**
-- Log analysis and pattern matching
 - Technical diagnostics and insights
-- Advanced troubleshooting workflows
-
-**L3 Support Agent:**
-- Code-level issue resolution
-- Automated fix generation
-- Critical system interventions
-
-**Auto-Scaling Agent:**
-- Metrics analysis and scaling recommendations
-- Predictive scaling based on workload patterns
-- Cost optimization algorithms
+- Automated issue resolution
 
 ### Running Backend Tests
 
@@ -139,6 +143,12 @@ npm run test:all           # Run all tests
 pytest                     # Run all tests
 pytest -v                  # Verbose output
 pytest --cov=src          # With coverage
+
+# AI Agent specific tests
+pytest tests/test_vector_memory.py    # Vector memory system tests
+pytest tests/test_workflow_routes.py  # Workflow orchestration tests
+pytest tests/test_ai_endpoints.py     # AI endpoint management tests
+pytest tests/test_memory_routes.py    # Memory API tests
 
 # Specific test categories
 pytest -m unit            # Unit tests only

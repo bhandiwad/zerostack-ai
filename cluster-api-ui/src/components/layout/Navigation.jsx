@@ -14,6 +14,8 @@ const Navigation = ({ user, organization, onLogout }) => {
   const navigationItems = [
     { path: '/', icon: '🏠', label: 'Home', description: 'Dashboard overview' },
     { path: '/agents', icon: '🤖', label: 'AI Agents', description: 'Intelligent automation' },
+    { path: '/ai-config', icon: '🤖', label: 'AI Config', description: 'AI endpoint management' },
+    { path: '/workflow-tester', icon: '⚡', label: 'Workflow Tester', description: '' },
     { path: '/clusters', icon: '⚙️', label: 'Clusters', description: 'Kubernetes management' },
     { path: '/explorer', icon: '🔍', label: 'Explorer', description: 'Resource browser' },
     { path: '/applications', icon: '📱', label: 'Apps', description: 'Application catalog' },

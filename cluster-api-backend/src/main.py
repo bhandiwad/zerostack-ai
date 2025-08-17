@@ -29,6 +29,9 @@ from src.routes.helm_charts import helm_charts_bp
 from src.features.support.support_routes import support_bp
 from src.features.agents.training_routes import training_bp
 from src.features.agents.management_routes import management_bp
+from src.features.agents.ai_endpoint_routes import ai_endpoints_bp
+from src.features.agents.workflow_routes import workflow_bp
+from src.features.agents.memory_routes import memory_bp
 
 def create_app(config_name='dev'):
     """Create and configure the Flask application"""
@@ -68,6 +71,9 @@ def create_app(config_name='dev'):
     app.register_blueprint(support_bp, url_prefix='/api/support')
     app.register_blueprint(training_bp, url_prefix='/api/agents/training')
     app.register_blueprint(management_bp, url_prefix='/api/agents')
+    app.register_blueprint(ai_endpoints_bp)
+    app.register_blueprint(workflow_bp)
+    app.register_blueprint(memory_bp)
     
     # Health check endpoint
     @app.route('/api/health')
