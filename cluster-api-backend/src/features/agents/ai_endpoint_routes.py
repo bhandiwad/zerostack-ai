@@ -102,7 +102,7 @@ async def test_ai_endpoint(config: AIEndpointConfig) -> Dict[str, Any]:
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
-@ai_endpoints_bp.route('/api/ai/endpoints', methods=['GET'])
+@ai_endpoints_bp.route('/ai/endpoints', methods=['GET'])
 def get_endpoints():
     """Get all AI endpoints"""
     try:
@@ -126,7 +126,7 @@ def get_endpoints():
             'error': str(e)
         }), 500
 
-@ai_endpoints_bp.route('/api/ai/endpoints', methods=['POST'])
+@ai_endpoints_bp.route('/ai/endpoints', methods=['POST'])
 def create_endpoint():
     """Create a new AI endpoint"""
     try:
@@ -171,7 +171,7 @@ def create_endpoint():
             'error': str(e)
         }), 500
 
-@ai_endpoints_bp.route('/api/ai/endpoints/<endpoint_id>', methods=['GET'])
+@ai_endpoints_bp.route('/ai/endpoints/<endpoint_id>', methods=['GET'])
 def get_endpoint(endpoint_id: str):
     """Get specific endpoint details"""
     try:
@@ -196,7 +196,7 @@ def get_endpoint(endpoint_id: str):
             'error': str(e)
         }), 500
 
-@ai_endpoints_bp.route('/api/ai/endpoints/<endpoint_id>', methods=['PUT'])
+@ai_endpoints_bp.route('/ai/endpoints/<endpoint_id>', methods=['PUT'])
 def update_endpoint(endpoint_id: str):
     """Update an existing endpoint"""
     try:
@@ -251,7 +251,7 @@ def update_endpoint(endpoint_id: str):
             'error': str(e)
         }), 500
 
-@ai_endpoints_bp.route('/api/ai/endpoints/<endpoint_id>', methods=['DELETE'])
+@ai_endpoints_bp.route('/ai/endpoints/<endpoint_id>', methods=['DELETE'])
 def delete_endpoint(endpoint_id: str):
     """Delete an endpoint"""
     try:
@@ -283,7 +283,7 @@ def delete_endpoint(endpoint_id: str):
             'error': str(e)
         }), 500
 
-@ai_endpoints_bp.route('/api/ai/endpoints/<endpoint_id>/test', methods=['POST'])
+@ai_endpoints_bp.route('/ai/endpoints/<endpoint_id>/test', methods=['POST'])
 def test_endpoint_connectivity(endpoint_id: str):
     """Test endpoint connectivity"""
     try:
@@ -326,7 +326,7 @@ def test_endpoint_connectivity(endpoint_id: str):
             'error': str(e)
         }), 500
 
-@ai_endpoints_bp.route('/api/ai/endpoints/<endpoint_id>/default', methods=['POST'])
+@ai_endpoints_bp.route('/ai/endpoints/<endpoint_id>/default', methods=['POST'])
 def set_default_endpoint(endpoint_id: str):
     """Set an endpoint as the default"""
     try:
@@ -352,7 +352,7 @@ def set_default_endpoint(endpoint_id: str):
             'error': str(e)
         }), 500
 
-@ai_endpoints_bp.route('/api/ai/endpoints/providers', methods=['GET'])
+@ai_endpoints_bp.route('/ai/endpoints/providers', methods=['GET'])
 def get_providers():
     """Get available AI providers and their models"""
     try:
@@ -387,7 +387,7 @@ def get_providers():
             'error': str(e)
         }), 500
 
-@ai_endpoints_bp.route('/api/ai/endpoints/stats', methods=['GET'])
+@ai_endpoints_bp.route('/ai/endpoints/stats', methods=['GET'])
 def get_endpoint_stats():
     """Get endpoint usage statistics"""
     try:

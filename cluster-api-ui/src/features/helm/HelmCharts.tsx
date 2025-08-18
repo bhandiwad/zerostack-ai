@@ -251,7 +251,11 @@ const HelmCharts: React.FC<HelmChartsProps> = ({ cluster }) => {
             <Button
               variant="contained"
               color="primary"
-              startIcon={<AddIcon />}
+              startIcon={
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+                </svg>
+              }
               onClick={() => setAddRepoOpen(true)}
             >
               Add Repository
@@ -279,7 +283,9 @@ const HelmCharts: React.FC<HelmChartsProps> = ({ cluster }) => {
                           size="small"
                           color="error"
                         >
-                          <DeleteIcon />
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                          </svg>
                         </IconButton>
                       </Tooltip>
                     </TableCell>
@@ -318,7 +324,9 @@ const HelmCharts: React.FC<HelmChartsProps> = ({ cluster }) => {
                         size="small"
                         color="primary"
                       >
-                        <InstallIcon />
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M5,20H19V18H5M19,9H15L13,7H9V9H5L12,16L19,9Z"/>
+                        </svg>
                       </IconButton>
                     </Tooltip>
                   </TableCell>
@@ -370,7 +378,9 @@ const HelmCharts: React.FC<HelmChartsProps> = ({ cluster }) => {
                         size="small"
                         color="primary"
                       >
-                        <YamlIcon />
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M14.6,16.6L19.2,12L14.6,7.4L13.2,8.8L16.4,12L13.2,15.2L14.6,16.6M9.4,16.6L10.8,15.2L7.6,12L10.8,8.8L9.4,7.4L4.8,12L9.4,16.6Z"/>
+                        </svg>
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
@@ -379,7 +389,9 @@ const HelmCharts: React.FC<HelmChartsProps> = ({ cluster }) => {
                         size="small"
                         color="error"
                       >
-                        <DeleteIcon />
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                        </svg>
                       </IconButton>
                     </Tooltip>
                   </TableCell>

@@ -191,17 +191,23 @@ const ClusterExplorer: React.FC = () => {
                   <TableCell>
                     <Tooltip title="View YAML">
                       <IconButton onClick={() => handleViewYaml(resource)} size="small">
-                        <ViewIcon fontSize="small" />
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+                        </svg>
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Edit">
                       <IconButton size="small">
-                        <EditIcon fontSize="small" />
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+                        </svg>
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
                       <IconButton size="small">
-                        <DeleteIcon fontSize="small" color="error" />
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" color="error">
+                          <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                        </svg>
                       </IconButton>
                     </Tooltip>
                   </TableCell>
@@ -226,19 +232,32 @@ const ClusterExplorer: React.FC = () => {
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Cluster Explorer</Typography>
+        <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '8px'}}>
+            <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z"/>
+          </svg>
+          Cluster Explorer
+        </Typography>
         <Box>
           <Button
             variant="contained"
             color="primary"
-            startIcon={<AddIcon />}
+            startIcon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+              </svg>
+            }
             sx={{ mr: 1 }}
           >
             Create
           </Button>
           <Button
             variant="outlined"
-            startIcon={<RefreshIcon />}
+            startIcon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+              </svg>
+            }
             onClick={() => fetchResources(resourceTypes[activeTab])}
           >
             Refresh

@@ -18,8 +18,16 @@ import CloudAccountManager from './pages/CloudAccounts/CloudAccountManager';
 import HelmApplicationsPage from './pages/HelmApplications/HelmApplicationsPage';
 import LoginForm from './components/auth/LoginForm';
 import Dashboard from './components/dashboard/Dashboard';
+import MetricsPage from './components/metrics/MetricsPage';
+import OnboardingFlow from './components/onboarding/OnboardingFlow';
+import TemplateHub from './components/templates/TemplateHub';
+import WorkflowManagement from './components/workflows/WorkflowManagement';
+import ClusterDebugger from './components/debugging/ClusterDebugger';
+import MaintenanceManager from './components/maintenance/MaintenanceManager';
+import AIEndpointManager from './components/ai/AIEndpointManager';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import './styles/design-system.css';
 
 // Refactored components
 import Navigation from './components/layout/Navigation';
@@ -31,16 +39,23 @@ const App = () => {
   const [user, setUser] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     // Check for existing authentication
     const token = localStorage.getItem('jwt_token');
     const userData = localStorage.getItem('user_data');
     const orgData = localStorage.getItem('organization_data');
+    const onboardingCompleted = localStorage.getItem('onboarding_completed');
 
     if (token && userData && orgData) {
       setUser(JSON.parse(userData));
       setOrganization(JSON.parse(orgData));
+      
+      // Show onboarding for new users who haven't completed it
+      if (!onboardingCompleted) {
+        setShowOnboarding(true);
+      }
     }
     setLoading(false);
   }, []);
@@ -48,6 +63,18 @@ const App = () => {
   const handleLogin = (loginData) => {
     setUser(loginData.user);
     setOrganization(loginData.organization);
+    
+    // Check if new user needs onboarding
+    const onboardingCompleted = localStorage.getItem('onboarding_completed');
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    }
+  };
+
+  const handleOnboardingComplete = (onboardingData) => {
+    localStorage.setItem('onboarding_completed', 'true');
+    localStorage.setItem('user_preferences', JSON.stringify(onboardingData));
+    setShowOnboarding(false);
   };
 
   const handleLogout = () => {
@@ -67,6 +94,11 @@ const App = () => {
     return <LoginForm onLogin={handleLogin} />;
   }
 
+  // Show onboarding flow for new users
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
+
   return (
     <Router>
       <ErrorBoundary componentName="AgentProvider">
@@ -80,6 +112,7 @@ const App = () => {
               <Route path="/" element={<Dashboard organization={organization} />} />
               <Route path="/clusters" element={<ClusterManagement />} />
               <Route path="/clusters/create" element={<ClusterCreation />} />
+              <Route path="/templates" element={<TemplateHub />} />
               <Route path="/explorer" element={<ClusterExplorer />} />
               <Route path="/helm" element={<HelmCharts />} />
               <Route path="/clusters/:clusterId/*" element={
@@ -91,18 +124,13 @@ const App = () => {
                   }} 
                 />
               } />
-              <Route path="/monitoring" element={
-                <div className="page-placeholder">
-                  <h2>📈 Real-Time Monitoring</h2>
-                  <p>Advanced monitoring dashboard coming soon...</p>
-                </div>
-              } />
+              <Route path="/metrics" element={<MetricsPage />} />
                 <Route path="/accounts" element={<CloudAccountManager />} />
                 <Route path="/agents/*" element={<AIHub />} />
                 <Route path="/ai-config" element={<AIEndpointConfig />} />
-                <Route path="/workflow-tester" element={<WorkflowTester />} />
-                <Route path="/agent-dashboard" element={<AgentPerformanceDashboard />} />
-                <Route path="/workflow-designer" element={<WorkflowDesigner />} />
+                <Route path="/workflows" element={<WorkflowManagement />} />
+            <Route path="/debugging" element={<ClusterDebugger />} />
+                <Route path="/maintenance" element={<MaintenanceManager />} />
                 <Route path="/applications" element={<HelmApplicationsPage />} />
               </Routes>
             </main>

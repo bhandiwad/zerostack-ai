@@ -17,7 +17,7 @@ const Header = ({ user, organization, onLogout }) => {
   return (
     <header className="app-header">
       <div className="header-left">
-        <h1>🚀 ZeroStack AI</h1>
+        <h1>◉ ZeroStack AI</h1>
         <span className="tagline">Zero Ops. Full Stack.</span>
       </div>
       <div className="header-right">

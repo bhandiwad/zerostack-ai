@@ -4,9 +4,8 @@
   align-items: center;
   padding: 0 24px;
   height: 64px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  background: var(--surface-bg);
+  border-bottom: 1px solid var(--border-color);
   position: relative;
   z-index: 10;
 }
@@ -19,24 +18,26 @@
 
 .header-left h1 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 .tagline {
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 11px;
+  color: var(--text-tertiary);
   font-weight: 500;
   padding: 2px 8px;
-  background: #f3f4f6;
-  border-radius: 12px;
+  background: var(--hover-bg);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .organization-info {
@@ -45,13 +46,13 @@
 }
 
 .org-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
   padding: 4px 12px;
-  background: #f9fafb;
+  background: var(--hover-bg);
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 }
 
 .user-menu-container {
@@ -67,36 +68,36 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: #374151;
+  transition: all 0.15s ease;
+  color: var(--text-primary);
 }
 
 .user-avatar-btn:hover {
-  background: #f3f4f6;
+  background: var(--hover-bg);
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
+  color: var(--text-inverse);
+  font-weight: 500;
+  font-size: 12px;
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .chevron-icon {
-  color: #9ca3af;
-  transition: transform 0.2s ease;
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease;
 }
 
 .user-avatar-btn:hover .chevron-icon {
@@ -107,12 +108,12 @@
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   width: 240px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
   z-index: 50;
   animation: dropdownFadeIn 0.15s ease-out;
 }
@@ -129,7 +130,7 @@
 }
 
 .dropdown-header {
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 .user-info {
@@ -138,53 +139,53 @@
 }
 
 .user-name-full {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 2px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
 }
 
 .user-email {
-  font-size: 12px;
-  color: #6b7280;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
 }
 
 .dropdown-divider {
   height: 1px;
-  background: #e5e7eb;
+  background: var(--border-color);
   margin: 0;
 }
 
 .dropdown-items {
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   background: none;
   border: none;
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.15s ease;
-  font-size: 14px;
-  color: #374151;
+  transition: background-color var(--transition-fast);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
 }
 
 .dropdown-item:hover {
-  background: #f9fafb;
+  background: var(--bg-tertiary);
 }
 
 .logout-item {
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .logout-item:hover {
   background: #fef2f2;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .item-icon {

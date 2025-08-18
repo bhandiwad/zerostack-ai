@@ -29,13 +29,17 @@ from src.routes.helm_charts import helm_charts_bp
 from src.features.support.support_routes import support_bp
 from src.features.agents.training_routes import training_bp
 from src.features.agents.management_routes import management_bp
-from src.features.agents.ai_endpoint_routes import ai_endpoints_bp
-from src.features.agents.workflow_routes import workflow_bp
+from src.features.ai_endpoints.ai_endpoints_routes import ai_endpoints_bp
+from src.features.debugging.debugging_routes import debugging_bp
+from src.features.workflows.workflow_routes import workflows_bp
+from src.features.maintenance.maintenance_routes import maintenance_bp
+from src.features.debugging.debugging_routes import debugging_bp
 from src.features.agents.memory_routes import memory_bp
 from src.features.agents.a2a_messaging_routes import a2a_bp
 from src.features.agents.learning_routes import learning_bp
 from src.features.agents.context_sharing_routes import context_bp
 from src.features.agents.workflow_designer_routes import workflow_designer_bp
+from src.features.deployments.deployment_routes import deployment_bp
 
 def create_app(config_name='dev'):
     """Create and configure the Flask application"""
@@ -60,30 +64,27 @@ def create_app(config_name='dev'):
 
     # Register blueprints
     app.register_blueprint(user_bp, url_prefix='/api')
-    app.register_blueprint(clusters_bp, url_prefix='/api')
-    app.register_blueprint(providers_bp, url_prefix='/api')
-    app.register_blueprint(cloud_accounts_bp, url_prefix='/api')
-    app.register_blueprint(cluster_ops_bp, url_prefix='/api')
-    app.register_blueprint(cost_bp, url_prefix='/api')
+    app.register_blueprint(clusters_bp, url_prefix='/api/clusters')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(org_bp, url_prefix='/api')
-    app.register_blueprint(advanced_cluster_bp, url_prefix='/api')
-    app.register_blueprint(clusters_mt_bp, url_prefix='/api/mt')
+    app.register_blueprint(org_bp, url_prefix='/api/organizations')
+    app.register_blueprint(advanced_cluster_bp, url_prefix='/api/advanced')
+    app.register_blueprint(clusters_mt_bp, url_prefix='/api/multitenant')
+    app.register_blueprint(agents_bp, url_prefix='/api/agents')
+    app.register_blueprint(cluster_explorer_bp, url_prefix='/api/explorer')
+    app.register_blueprint(helm_charts_bp, url_prefix='/api/helm')
     app.register_blueprint(support_bp, url_prefix='/api/support')
-    app.register_blueprint(training_bp, url_prefix='/api/agents/training')
-    app.register_blueprint(management_bp, url_prefix='/api/agents')
-    app.register_blueprint(ai_endpoints_bp)
-    app.register_blueprint(workflow_bp)
-    app.register_blueprint(memory_bp)
-    app.register_blueprint(a2a_bp)
-    app.register_blueprint(learning_bp)
-    app.register_blueprint(context_bp)
-    app.register_blueprint(workflow_designer_bp)
-    
-    app.register_blueprint(clusters_bp)
-    app.register_blueprint(agents_bp)
-    app.register_blueprint(cluster_explorer_bp)
-    app.register_blueprint(helm_charts_bp)
+    app.register_blueprint(training_bp, url_prefix='/api/training')
+    app.register_blueprint(management_bp, url_prefix='/api/management')
+    app.register_blueprint(ai_endpoints_bp, url_prefix='/api/ai-endpoints')
+    app.register_blueprint(debugging_bp, url_prefix='/api/debugging')
+    app.register_blueprint(workflows_bp, url_prefix='/api/workflows')
+    app.register_blueprint(maintenance_bp, url_prefix='/api/maintenance')
+    app.register_blueprint(memory_bp, url_prefix='/api/memory')
+    app.register_blueprint(a2a_bp, url_prefix='/api/a2a')
+    app.register_blueprint(learning_bp, url_prefix='/api/learning')
+    app.register_blueprint(context_bp, url_prefix='/api/context')
+    app.register_blueprint(workflow_designer_bp, url_prefix='/api/workflow-designer')
+    app.register_blueprint(deployment_bp, url_prefix='/api/deployments')
     
     # Health check endpoint
     @app.route('/api/health')
@@ -125,5 +126,5 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    # Note: use_reloader=False is important for stability in some environments
+    # Run the Flask app
     app.run(host='0.0.0.0', port=5002, debug=True, use_reloader=False)
