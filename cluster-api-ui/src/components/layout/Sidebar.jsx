@@ -18,7 +18,7 @@ import {
   Dashboard as DashboardIcon,
   Storage as ClustersIcon,
   Add as CreateIcon,
-  Monitoring as MonitoringIcon,
+  Monitor as MonitoringIcon,
   Cloud as CloudIcon,
   Settings as SettingsIcon,
   Help as HelpIcon,

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import './MetricsPage.css';
 
 const MetricsPage = () => {
   const [metrics, setMetrics] = useState({
@@ -99,183 +98,210 @@ const MetricsPage = () => {
   );
 
   return (
-    <div className="metrics-page">
-      <div className="metrics-header">
-        <h1>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '8px'}}>
-            <path d="M3,3V21H21V3H3M9,17H7V10H9V17M13,17H11V7H13V17M17,17H15V13H17V17Z"/>
-          </svg>
-          System Metrics
-        </h1>
-        <div className="metrics-controls">
-          <select 
-            value={timeRange} 
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="time-range-select"
-          >
-            <option value="5m">Last 5 minutes</option>
-            <option value="1h">Last hour</option>
-            <option value="24h">Last 24 hours</option>
-            <option value="7d">Last 7 days</option>
-          </select>
-          <button 
-            className={`auto-refresh-btn ${autoRefresh ? 'active' : ''}`}
-            onClick={() => setAutoRefresh(!autoRefresh)}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+    <div className="max-w-7xl mx-auto p-6 space-y-8">
+      {/* Modern Header */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-8 border border-purple-200">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+              <path d="M3,3V21H21V3H3M9,17H7V10H9V17M13,17H11V7H13V17M17,17H15V13H17V17Z"/>
             </svg>
-            Auto Refresh
-          </button>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">System Metrics</h1>
+            <p className="text-gray-600 mt-1">Real-time monitoring and performance analytics</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 mt-6">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Time Range:</label>
+            <select 
+              value={timeRange} 
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="5m">Last 5 minutes</option>
+              <option value="1h">Last hour</option>
+              <option value="24h">Last 24 hours</option>
+              <option value="7d">Last 7 days</option>
+            </select>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={autoRefresh} 
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Auto Refresh</span>
+          </label>
         </div>
       </div>
 
-      <div className="metrics-overview">
-        <MetricCard 
-          title="Total Clusters"
-          value={metrics.clusters.total}
-          unit=""
-          trend={5.2}
-          status="good"
-          icon={
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z"/>
-            </svg>
-          }
-        />
-        <MetricCard 
-          title="Active Nodes"
-          value={metrics.nodes.healthy}
-          unit=""
-          trend={2.1}
-          status="good"
-          icon={
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H16L12,22L8,18H4A2,2 0 0,1 2,16V4A2,2 0 0,1 4,2M4,4V16H8.83L12,19.17L15.17,16H20V4H4Z"/>
-            </svg>
-          }
-        />
-        <MetricCard 
-          title="Running Pods"
-          value={metrics.pods.running}
-          unit=""
-          trend={-1.3}
-          status="warning"
-          icon={
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-            </svg>
-          }
-        />
-        <MetricCard 
-          title="Network Latency"
-          value={metrics.network.latency}
-          unit="ms"
-          trend={-8.5}
-          status="good"
-          icon={
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2,3H22C23.05,3 24,3.95 24,5V19C24,20.05 23.05,21 22,21H2C0.95,21 0,20.05 0,19V5C0,3.95 0.95,3 2,3M22,19V5H2V19H22M6,17V15L10,11V13H18V15H10V17H6Z"/>
-            </svg>
-          }
-        />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <span className="text-xl">🏗️</span>
+            </div>
+            <span className="text-sm text-green-600 font-medium">+5%</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">{metrics.clusters.total}</h3>
+          <p className="text-gray-600 text-sm">Total Clusters</p>
+        </div>
+        
+        <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <span className="text-xl">✅</span>
+            </div>
+            <span className="text-sm text-green-600 font-medium">+2%</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">{metrics.clusters.running}</h3>
+          <p className="text-gray-600 text-sm">Running</p>
+        </div>
+        
+        <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <span className="text-xl">⏸️</span>
+            </div>
+            <span className="text-sm text-red-600 font-medium">-1%</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">{metrics.clusters.stopped}</h3>
+          <p className="text-gray-600 text-sm">Stopped</p>
+        </div>
+        
+        <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <span className="text-xl">📊</span>
+            </div>
+            <span className="text-sm text-green-600 font-medium">+8%</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">{metrics.nodes.total}</h3>
+          <p className="text-gray-600 text-sm">Total Nodes</p>
+        </div>
       </div>
 
       <div className="metrics-grid">
         <div className="metrics-section">
           <h2>Cluster Resources</h2>
-          <div className="resource-metrics">
-            <ProgressBar label="CPU Usage" value={metrics.clusters.cpu} color="#3182ce" />
-            <ProgressBar label="Memory Usage" value={metrics.clusters.memory} color="#38a169" />
-            <ProgressBar label="Storage Usage" value={metrics.clusters.storage} color="#ed8936" />
-          </div>
-        </div>
-
-        <div className="metrics-section">
-          <h2>Node Health</h2>
-          <div className="node-health">
-            <div className="health-item">
-              <div className="health-indicator healthy"></div>
-              <span>Healthy Nodes: {metrics.nodes.healthy}</span>
-            </div>
-            <div className="health-item">
-              <div className="health-indicator unhealthy"></div>
-              <span>Unhealthy Nodes: {metrics.nodes.unhealthy}</span>
-            </div>
-            <div className="resource-metrics">
-              <ProgressBar label="Node CPU" value={metrics.nodes.cpu} color="#3182ce" />
-              <ProgressBar label="Node Memory" value={metrics.nodes.memory} color="#38a169" />
-              <ProgressBar label="Node Disk" value={metrics.nodes.disk} color="#ed8936" />
-            </div>
-          </div>
-        </div>
-
-        <div className="metrics-section">
-          <h2>Pod Statistics</h2>
-          <div className="pod-stats">
-            <div className="stat-grid">
-              <div className="stat-item">
-                <div className="stat-value">{metrics.pods.running}</div>
-                <div className="stat-label">Running</div>
+          {/* Resource Utilization */}
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">Resource Utilization</h3>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">CPU</span>
+                  <span className="text-sm text-gray-600">{metrics.clusters.cpu}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: `${metrics.clusters.cpu}%`}}></div>
+                </div>
               </div>
-              <div className="stat-item">
-                <div className="stat-value">{metrics.pods.pending}</div>
-                <div className="stat-label">Pending</div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">Memory</span>
+                  <span className="text-sm text-gray-600">{metrics.clusters.memory}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{width: `${metrics.clusters.memory}%`}}></div>
+                </div>
               </div>
-              <div className="stat-item">
-                <div className="stat-value">{metrics.pods.failed}</div>
-                <div className="stat-label">Failed</div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">Storage</span>
+                  <span className="text-sm text-gray-600">{metrics.clusters.storage}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-yellow-600 h-2 rounded-full transition-all duration-300" style={{width: `${metrics.clusters.storage}%`}}></div>
+                </div>
               </div>
             </div>
-            <div className="resource-metrics">
-              <ProgressBar label="Pod CPU" value={metrics.pods.cpu} color="#3182ce" />
-              <ProgressBar label="Pod Memory" value={metrics.pods.memory} color="#38a169" />
+          </div>
+
+          {/* Network & Performance */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900 mb-6">Network Traffic</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path d="M7,10L12,15L17,10H7Z"/>
+                      </svg>
+                    </div>
+                    <span className="font-medium text-gray-700">Inbound</span>
+                  </div>
+                  <span className="text-lg font-bold text-blue-600">{metrics.network.inbound} GB/s</span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path d="M7,14L12,9L17,14H7Z"/>
+                      </svg>
+                    </div>
+                    <span className="font-medium text-gray-700">Outbound</span>
+                  </div>
+                  <span className="text-lg font-bold text-green-600">{metrics.network.outbound} GB/s</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900 mb-6">Performance</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">⚡</span>
+                    </div>
+                    <span className="font-medium text-gray-700">Latency</span>
+                  </div>
+                  <span className="text-lg font-bold text-purple-600">{metrics.network.latency}ms</span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">⚠️</span>
+                    </div>
+                    <span className="font-medium text-gray-700">Error Rate</span>
+                  </div>
+                  <span className="text-lg font-bold text-red-600">{metrics.network.errors}%</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="metrics-section">
-          <h2>Network Performance</h2>
-          <div className="network-metrics">
-            <div className="network-item">
-              <div className="network-label">Inbound Traffic</div>
-              <div className="network-value">{metrics.network.inbound} GB/s</div>
+        {/* Pod Status */}
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">Pod Status Overview</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-2xl mb-2">📦</div>
+              <div className="text-2xl font-bold text-gray-900">{metrics.pods.total}</div>
+              <div className="text-sm text-gray-600">Total Pods</div>
             </div>
-            <div className="network-item">
-              <div className="network-label">Outbound Traffic</div>
-              <div className="network-value">{metrics.network.outbound} GB/s</div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl mb-2">🟢</div>
+              <div className="text-2xl font-bold text-green-600">{metrics.pods.running}</div>
+              <div className="text-sm text-gray-600">Running</div>
             </div>
-            <div className="network-item">
-              <div className="network-label">Error Rate</div>
-              <div className="network-value">{metrics.network.errors}%</div>
+            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+              <div className="text-2xl mb-2">🟡</div>
+              <div className="text-2xl font-bold text-yellow-600">{metrics.pods.pending}</div>
+              <div className="text-sm text-gray-600">Pending</div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="metrics-alerts">
-        <h2>System Alerts</h2>
-        <div className="alert-list">
-          <div className="alert-item warning">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/>
-            </svg>
-            <span>High memory usage detected on cluster-prod-01</span>
-            <span className="alert-time">2 minutes ago</span>
-          </div>
-          <div className="alert-item info">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-            </svg>
-            <span>Scheduled maintenance for cluster-dev-02 starting in 1 hour</span>
-            <span className="alert-time">15 minutes ago</span>
-          </div>
-          <div className="alert-item success">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,16.5L18,9.5L16.59,8.09L11,13.67L7.91,10.59L6.5,12L11,16.5Z"/>
-            </svg>
-            <span>All systems operating normally</span>
-            <span className="alert-time">1 hour ago</span>
+            <div className="text-center p-4 bg-red-50 rounded-lg">
+              <div className="text-2xl mb-2">🔴</div>
+              <div className="text-2xl font-bold text-red-600">{metrics.pods.failed}</div>
+              <div className="text-sm text-gray-600">Failed</div>
+            </div>
           </div>
         </div>
       </div>

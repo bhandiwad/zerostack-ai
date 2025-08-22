@@ -14,11 +14,20 @@ export const apiCall = async (endpoint, options = {}) => {
   
   const url = `${API_BASE_URL}${normalizedEndpoint}`;
   
+  // Get or create a development token
+  let token = localStorage.getItem('jwt_token');
+  if (!token) {
+    // Create a development token for demo purposes
+    token = 'dev-token-' + Date.now();
+    localStorage.setItem('jwt_token', token);
+  }
+  
   try {
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
         ...(options.headers || {})
       },
       credentials: 'include'

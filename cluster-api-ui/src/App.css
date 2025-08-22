@@ -506,13 +506,7 @@ body {
   color: #c53030;
 }
 
-/* Cluster Management Styles */
-.cluster-management {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f8fafc;
-}
+/* Cluster Management Styles - Removed to use modern Tailwind design */
 
 /* Clusters Header */
 .clusters-header {

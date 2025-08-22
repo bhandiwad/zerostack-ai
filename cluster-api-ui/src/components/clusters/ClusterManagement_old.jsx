@@ -6,7 +6,7 @@ import UpgradeKubernetesDialog from './UpgradeKubernetesDialog';
 import NodeManagementDialog from './NodeManagementDialog';
 import ScaleClusterDialog from './ScaleClusterDialog';
 import MaintenanceModeDialog from './MaintenanceModeDialog';
-import './ClusterManagement.css';
+// Removed old CSS import to use modern Tailwind styles
 
 const ClusterManagement = () => {
   const [clusters, setClusters] = useState([]);

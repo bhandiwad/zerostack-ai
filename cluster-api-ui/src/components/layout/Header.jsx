@@ -1,5 +1,6 @@
-
-import React, { useState } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { ThemeToggleDropdown } from '../ui/theme-toggle';
 import { cn } from '../../lib/utils';
 
 const Header = ({ user, onLogout }) => {
