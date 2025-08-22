@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../../utils/api';
 
-const ScaleClusterDialog = ({ cluster, currentCount, targetCount, validation, loading, onClose, onScale, onTargetChange }) => {
+const ScaleClusterDialog = ({ cluster, onClose }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [currentCount, setCurrentCount] = useState(cluster?.node_count || 1);
+  const [targetCount, setTargetCount] = useState(cluster?.node_count || 1);
   const [tempTargetCount, setTempTargetCount] = useState(targetCount);
   useEffect(() => {
     setTempTargetCount(targetCount);
@@ -8,13 +13,51 @@ const ScaleClusterDialog = ({ cluster, currentCount, targetCount, validation, lo
 
   const handleTargetChange = (e) => {
     const newTarget = parseInt(e.target.value);
-    setTempTargetCount(newTarget);
-    onTargetChange(newTarget);
+    if (!isNaN(newTarget) && newTarget >= 1 && newTarget <= 500) {
+      setTargetCount(newTarget);
+    }
   };
 
 
-  const handleScale = () => {
-    onScale();
+  const handleScale = async () => {
+    if (!cluster?.id) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      // First validate the target count
+      if (targetCount < 1 || targetCount > 500 || isNaN(targetCount)) {
+        throw new Error('Invalid node count. Must be between 1 and 500.');
+      }
+      
+      // Show confirmation for scaling down
+      if (targetCount < currentCount) {
+        const confirmMessage = `Are you sure you want to scale down from ${currentCount} to ${targetCount} nodes? ` +
+          'This will terminate worker nodes and may affect your workloads.';
+        if (!window.confirm(confirmMessage)) {
+          return;
+        }
+      }
+      
+      // Call the API to scale the cluster
+      const response = await api.post(`/clusters/${cluster.id}/scale`, { 
+        node_count: targetCount 
+      });
+      
+      if (response.data?.message) {
+        // Show success message
+        alert(response.data.message);
+      }
+      
+      // Close the dialog and let parent refresh the cluster data
+      onClose();
+    } catch (err) {
+      console.error('Error scaling cluster:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to scale cluster');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getScaleDirection = () => {
@@ -61,11 +104,13 @@ const ScaleClusterDialog = ({ cluster, currentCount, targetCount, validation, lo
               type="number"
               min="1"
               max="500"
-              value={tempTargetCount}
+              value={targetCount}
               onChange={handleTargetChange}
               className={`scale-input ${getScaleColor()}`}
+              disabled={loading}
             />
             <small>Enter the desired number of nodes (1-500)</small>
+            {error && <div className="error-message">{error}</div>}
           </div>
 
           {/* Quick Scale Presets */}
@@ -99,10 +144,22 @@ const ScaleClusterDialog = ({ cluster, currentCount, targetCount, validation, lo
             </div>
            </div>
         </div>
-        <div className="modal-footer">
-          <button onClick={onClose} className="cancel-button">Close</button>
-          <button onClick={handleScale} className={`confirm-button ${getScaleColor()}`} disabled={loading || (validation && !validation.isValid)}>
-            {loading ? '🔄 Scaling...' : `${getScaleIcon()} Scale Cluster`}
+        <div className="modal-actions">
+          <button 
+            onClick={onClose} 
+            className="btn btn-secondary"
+            disabled={loading}
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleScale}
+            className={`btn ${getScaleDirection() === 'up' ? 'btn-primary' : 'btn-warning'}`}
+            disabled={loading || targetCount === currentCount}
+          >
+            {loading 
+              ? 'Scaling...' 
+              : `Confirm Scale ${getScaleDirection().toUpperCase()}`}
           </button>
         </div>
       </div>

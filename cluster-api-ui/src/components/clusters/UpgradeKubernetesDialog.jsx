@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../../utils/api';
 
 const UpgradeKubernetesDialog = ({ 
   cluster, 
-  onClose, 
-  onUpgrade,
-  loading = false 
+  onClose
 }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [targetVersion, setTargetVersion] = useState('');
   const [availableVersions, setAvailableVersions] = useState([]);
   const [validation, setValidation] = useState({ isValid: true, message: '' });
@@ -13,58 +14,125 @@ const UpgradeKubernetesDialog = ({
   // Fetch available Kubernetes versions when component mounts
   useEffect(() => {
     const fetchAvailableVersions = async () => {
+      if (!cluster?.id) return;
+      
+      setLoading(true);
+      setError('');
+      
       try {
-        // This would be an API call to get available versions
-        // For now, we'll mock some versions based on current version
-        const currentVersion = cluster?.version || '1.24.0';
-        const [major, minor] = currentVersion.split('.').map(Number);
+        // Fetch available versions from the API
+        const response = await api.get(`/clusters/${cluster.id}/upgrades`);
+        const versions = response?.data?.available_versions || [];
         
-        // Generate some versions around the current version
-        const versions = [
-          `${major}.${minor - 1}.0`, // One minor version back
-          currentVersion,             // Current version
-          `${major}.${minor + 1}.0`, // Next minor version
-          `${major}.${minor + 2}.0`  // Next next minor version
-        ].filter(Boolean);
+        if (versions.length === 0) {
+          throw new Error('No upgrade versions available');
+        }
         
         setAvailableVersions(versions);
-        setTargetVersion(versions[versions.length - 1]); // Default to latest available
-      } catch (error) {
-        console.error('Error fetching available versions:', error);
-        setValidation({
-          isValid: false,
-          message: 'Failed to fetch available Kubernetes versions.'
-        });
+        setTargetVersion(versions[0]); // Default to first available version
+      } catch (err) {
+        console.error('Error fetching available versions:', err);
+        setError(err.response?.data?.error || err.message || 'Failed to fetch available versions');
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchAvailableVersions();
   }, [cluster]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!targetVersion) {
-      setValidation({
-        isValid: false,
-        message: 'Please select a target version.'
-      });
+    
+    if (!cluster?.id) {
+      setError('No cluster selected');
       return;
     }
     
-    // Call the upgrade handler with the selected version
-    onUpgrade(targetVersion);
+    if (!targetVersion) {
+      setError('Please select a target version');
+      return;
+    }
+    
+    // Show confirmation for downgrade
+    if (!isUpgrade()) {
+      const confirmMessage = `WARNING: You are about to downgrade Kubernetes from ${cluster.kubernetes_version} to ${targetVersion}.\n\n` +
+        'Downgrading Kubernetes can cause compatibility issues with your workloads.\n' +
+        'Please ensure you have backups and have tested this in a non-production environment first.\n\n' +
+        'Are you sure you want to proceed?';
+      
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+    } else {
+      // Show confirmation for upgrade
+      const confirmMessage = `You are about to upgrade Kubernetes from ${cluster.kubernetes_version} to ${targetVersion}.\n\n` +
+        'The upgrade process may take several minutes and will temporarily affect cluster operations.\n' +
+        'Are you sure you want to proceed?';
+      
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      // Call the upgrade API
+      const response = await api.post(`/clusters/${cluster.id}/upgrade`, { 
+        version: targetVersion,
+        force: false, // Don't force by default
+        skip_preflight: false // Run preflight checks
+      });
+      
+      // Show success message
+      if (response.data?.message) {
+        alert(response.data.message);
+      } else {
+        alert(`Kubernetes ${getVersionDifference()} to ${targetVersion} has been initiated.`);
+      }
+      
+      // Close the dialog on success
+      onClose();
+    } catch (err) {
+      console.error('Error upgrading cluster:', err);
+      
+      // Handle specific error cases
+      if (err.response?.data?.error?.includes('preflight')) {
+        setError(`Preflight checks failed: ${err.response.data.error}\n\n${err.response.data.details || ''}`);
+      } else if (err.response?.status === 409) {
+        setError('Another operation is already in progress. Please try again later.');
+      } else {
+        setError(err.response?.data?.error || err.message || 'Failed to upgrade cluster');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isUpgrade = () => {
-    if (!cluster?.version || !targetVersion) return false;
-    const current = cluster.version.split('.').map(Number);
-    const target = targetVersion.split('.').map(Number);
+    if (!cluster?.kubernetes_version || !targetVersion) return true; // Default to upgrade
     
+    // If versions are the same, it's not an upgrade
+    if (cluster.kubernetes_version === targetVersion) return false;
+    
+    // Handle pre-release versions (e.g., 1.24.0-rc.1)
+    const [currentBase] = cluster.kubernetes_version.split('-');
+    const [targetBase] = targetVersion.split('-');
+    
+    const current = currentBase.split('.').map(Number);
+    const target = targetBase.split('.').map(Number);
+    
+    // Compare version components
     for (let i = 0; i < Math.min(current.length, target.length); i++) {
       if (target[i] > current[i]) return true;
       if (target[i] < current[i]) return false;
     }
-    return false;
+    
+    // If we get here, the versions are the same up to the minimum length
+    // The longer version is considered newer if all preceding components are equal
+    return target.length > current.length;
   };
 
   const getVersionDifference = () => {
@@ -88,7 +156,7 @@ const UpgradeKubernetesDialog = ({
                 <input
                   id="current-version"
                   type="text"
-                  value={cluster?.version || 'N/A'}
+                  value={cluster?.kubernetes_version || 'N/A'}
                   readOnly
                   className="form-control"
                 />
@@ -104,14 +172,20 @@ const UpgradeKubernetesDialog = ({
                   value={targetVersion}
                   onChange={(e) => setTargetVersion(e.target.value)}
                   className="form-control"
+                  required
                   disabled={loading || availableVersions.length === 0}
                 >
-                  <option value="">Select a version</option>
-                  {availableVersions.map((version) => (
-                    <option key={version} value={version}>
-                      {version} {version === cluster?.version ? '(current)' : ''}
-                    </option>
-                  ))}
+                  {loading && availableVersions.length === 0 ? (
+                    <option>Loading versions...</option>
+                  ) : availableVersions.length === 0 ? (
+                    <option>No upgrade versions available</option>
+                  ) : (
+                    availableVersions.map(version => (
+                      <option key={version} value={version}>
+                        {version} {version === cluster?.kubernetes_version ? '(current)' : ''}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
               
@@ -145,17 +219,20 @@ const UpgradeKubernetesDialog = ({
             </button>
             <button 
               type="submit" 
-              className={`confirm-button ${isUpgrade() ? 'upgrade' : 'downgrade'}`}
-              disabled={loading || !targetVersion || targetVersion === cluster?.version}
+              className={`btn ${isUpgrade() ? 'btn-primary' : 'btn-warning'}`}
+              disabled={loading || availableVersions.length === 0 || cluster?.kubernetes_version === targetVersion}
             >
-              {loading ? (
-                'Processing...'
-              ) : (
-                `${isUpgrade() ? 'Upgrade' : 'Downgrade'} to ${targetVersion}`
-              )}
+              {loading 
+                ? (isUpgrade() ? 'Upgrading...' : 'Downgrading...')
+                : `Confirm ${getVersionDifference().charAt(0).toUpperCase() + getVersionDifference().slice(1)}`}
             </button>
           </div>
         </form>
+        {error && (
+          <div className="alert alert-error" style={{ marginTop: '1rem' }}>
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );

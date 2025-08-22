@@ -1,6 +1,65 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../../utils/api';
 
-const NodeManagementDialog = ({ cluster, nodes, loading, onClose, onDrainNode, onUncordonNode, onRefresh }) => {
+const NodeManagementDialog = ({ cluster, onClose }) => {
+  const [nodes, setNodes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
+  const loadNodes = async () => {
+    if (!cluster?.id) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await api.get(`/clusters/${cluster.id}/nodes`);
+      setNodes(response.data || []);
+    } catch (err) {
+      console.error('Error loading nodes:', err);
+      setError(err.response?.data?.error || 'Failed to load nodes');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    loadNodes();
+  }, [cluster?.id]);
+  
+  const handleRefresh = async () => {
+    await loadNodes();
+  };
+  
+  const handleDrainNode = async (nodeName) => {
+    if (!cluster?.id || !nodeName) return;
+    
+    try {
+      setLoading(true);
+      await api.post(`/clusters/${cluster.id}/nodes/${nodeName}/drain`);
+      await loadNodes(); // Refresh nodes after draining
+    } catch (err) {
+      console.error('Error draining node:', err);
+      setError(err.response?.data?.error || 'Failed to drain node');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleUncordonNode = async (nodeName) => {
+    if (!cluster?.id || !nodeName) return;
+    
+    try {
+      setLoading(true);
+      await api.post(`/clusters/${cluster.id}/nodes/${nodeName}/uncordon`);
+      await loadNodes(); // Refresh nodes after uncordoning
+    } catch (err) {
+      console.error('Error uncordoning node:', err);
+      setError(err.response?.data?.error || 'Failed to uncordon node');
+    } finally {
+      setLoading(false);
+    }
+  };
   const getNodeStatusColor = (node) => {
     // Handle the actual API response structure
     if (node.ready === true) {
@@ -50,7 +109,7 @@ const NodeManagementDialog = ({ cluster, nodes, loading, onClose, onDrainNode, o
           <h3>Node Management: {cluster?.name}</h3>
           <div className="header-actions">
             <button 
-              onClick={onRefresh} 
+              onClick={handleRefresh} 
               className="refresh-button"
               disabled={loading}
             >
@@ -98,11 +157,15 @@ const NodeManagementDialog = ({ cluster, nodes, loading, onClose, onDrainNode, o
                       <td>{node.pod_count || 'N/A'}</td>
                       <td>{node.age || 'N/A'}</td>
                       <td className="actions">
-                        {canDrainNode(node) && (
-                          <button onClick={() => onDrainNode(node.name)} className="action-button drain">Drain</button>
-                        )}
+                        <button 
+                          className="action-button"
+                          onClick={() => handleDrainNode(node.name)}
+                          disabled={!canDrainNode(node) || loading}
+                        >
+                          Drain
+                        </button>
                         {canUncordonNode(node) && (
-                          <button onClick={() => onUncordonNode(node.name)} className="action-button uncordon">Uncordon</button>
+                          <button onClick={() => handleUncordonNode(node.name)} className="action-button uncordon">Uncordon</button>
                         )}
                       </td>
                     </tr>
@@ -112,6 +175,11 @@ const NodeManagementDialog = ({ cluster, nodes, loading, onClose, onDrainNode, o
             </div>
           )}
         </div>
+        {error && (
+          <div className="alert alert-error" style={{ marginTop: '1rem' }}>
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );

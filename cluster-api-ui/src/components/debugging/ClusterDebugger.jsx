@@ -1,18 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ExclamationTriangleIcon, 
-  CheckCircleIcon, 
-  ClockIcon,
-  CpuChipIcon,
-  ServerIcon,
-  ChartBarIcon,
-  WrenchScrewdriverIcon,
-  PlayIcon,
-  StopIcon
-} from '@heroicons/react/24/outline';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import Button from '../ui/Button';
 import PredictiveInsightsPanel from './PredictiveInsightsPanel';
 import AnomalyDetectionPanel from './AnomalyDetectionPanel';
 import IntelligentAlertsPanel from './IntelligentAlertsPanel';
+
+// Icon components
+const CpuChipIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+  </svg>
+);
+
+const ServerIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+  </svg>
+);
+
+const ChartBarIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+);
+
+const WrenchScrewdriverIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const ExclamationTriangleIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+  </svg>
+);
 
 const ClusterDebugger = () => {
   const [analysisData, setAnalysisData] = useState(null);
@@ -44,6 +67,13 @@ const ClusterDebugger = () => {
   };
 
   const API_BASE = 'http://localhost:5002/api';
+
+  const tabs = [
+    { id: 'analysis', label: 'Analysis', icon: '🔍' },
+    { id: 'predictive', label: 'Predictive', icon: '📊' },
+    { id: 'anomalies', label: 'Anomalies', icon: '⚠️' },
+    { id: 'alerts', label: 'Alerts', icon: '🔔' }
+  ];
 
   const runAnalysis = async (type = 'healthy') => {
     setIsAnalyzing(true);
@@ -88,75 +118,84 @@ const ClusterDebugger = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">AI-Powered Cluster Debugger</h1>
-        <p className="text-gray-600">Intelligent analysis, predictive insights, and proactive issue detection for Kubernetes clusters</p>
-        
-        {/* Tab Navigation */}
-        <div className="mt-6 border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: 'analysis', label: 'Cluster Analysis', icon: '🔍' },
-              { id: 'predictive', label: 'Predictive Insights', icon: '🔮' },
-              { id: 'anomalies', label: 'Anomaly Detection', icon: '⚠️' },
-              { id: 'alerts', label: 'Intelligent Alerts', icon: '🚨' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+    <div className="space-y-6">
+      {/* Header Section with Stripe-inspired design */}
+      <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">🔍 AI-Powered Cluster Debugger</h1>
+            <p className="text-gray-600">Intelligent analysis, predictive insights, and proactive issue detection</p>
+          </div>
+          <div className="text-right">
+            <div className="bg-red-50 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
+              AI-Diagnostics
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Smart Detection
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Control Panel */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Analysis Controls</h2>
+      {/* Tab Navigation */}
+      <div className="flex items-center justify-between">
+        <div></div>
         
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Simulation Type:</label>
-            <select 
-              value={simulationType} 
-              onChange={(e) => setSimulationType(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+        {/* Tab Navigation */}
+        <nav className="flex bg-gray-100 rounded-lg p-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.id
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
-              <option value="healthy">Healthy Cluster</option>
-              <option value="cpu_high">High CPU Usage</option>
-              <option value="memory_critical">Memory Critical</option>
-              <option value="pod_failures">Pod Failures</option>
-            </select>
-          </div>
-          
-          <button
-            onClick={() => runAnalysis(simulationType)}
-            disabled={isAnalyzing}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isAnalyzing ? (
-              <>
-                <ClockIcon className="h-4 w-4 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <PlayIcon className="h-4 w-4" />
-                Run Analysis
-              </>
-            )}
-          </button>
-        </div>
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
       </div>
+
+      {/* Control Panel */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Analysis Controls</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Simulation Type:</label>
+              <select 
+                value={simulationType} 
+                onChange={(e) => setSimulationType(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="healthy">Healthy Cluster</option>
+                <option value="cpu_high">High CPU Usage</option>
+                <option value="memory_critical">Memory Critical</option>
+                <option value="pod_failures">Pod Failures</option>
+              </select>
+            </div>
+            
+            <Button
+              onClick={() => runAnalysis(simulationType)}
+              disabled={isAnalyzing}
+              loading={isAnalyzing}
+              icon={!isAnalyzing && (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            >
+              {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tab Content */}
       {activeTab === 'analysis' && (

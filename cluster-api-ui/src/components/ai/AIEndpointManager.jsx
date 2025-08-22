@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  PlusIcon,
-  TrashIcon,
-  PencilIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ClockIcon,
-  XCircleIcon,
-  PlayIcon,
-  CogIcon,
-  ChartBarIcon
-} from '@heroicons/react/24/outline';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import Button from '../ui/Button';
 
 const AIEndpointManager = () => {
   const [endpoints, setEndpoints] = useState([]);
@@ -124,20 +114,35 @@ const AIEndpointManager = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI Endpoint Manager</h1>
-          <p className="text-gray-600">Manage and monitor your AI provider endpoints</p>
+    <div className="space-y-6">
+      {/* Header Section with Stripe-inspired design */}
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">🤖 AI Endpoint Manager</h1>
+            <p className="text-gray-600">Manage AI provider endpoints and load balancing</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-sm font-medium">
+                Enterprise AI
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Multi-Provider
+              </div>
+            </div>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              icon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              }
+            >
+              Add Endpoint
+            </Button>
+          </div>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2"
-        >
-          <PlusIcon className="h-4 w-4" />
-          <span>Add Endpoint</span>
-        </button>
       </div>
 
       {/* Health Summary */}

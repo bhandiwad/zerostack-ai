@@ -97,7 +97,8 @@ class MaintenanceEngine:
             'failed_steps': [],
             'logs': [],
             'progress': 0,
-            'estimated_completion': None
+            'estimated_completion': None,
+            'cancel_requested': False,
         }
         
         # Start execution in background thread
@@ -127,6 +128,12 @@ class MaintenanceEngine:
             
             # Execute each step
             for i, step in enumerate(steps):
+                # Respect cancellation before starting the step
+                if execution_id in self.executions:
+                    exec_state = self.executions[execution_id]
+                    if exec_state.get('cancel_requested') or exec_state.get('status') == 'cancelled':
+                        self._log_execution(execution_id, 'Execution cancelled before starting next step')
+                        return
                 step_name = step['name']
                 timeout = step.get('timeout', 300)
                 
@@ -152,6 +159,12 @@ class MaintenanceEngine:
                         return
             
             # All steps completed successfully
+            # If cancellation requested during last step, don't mark completed
+            if execution_id in self.executions:
+                exec_state = self.executions[execution_id]
+                if exec_state.get('cancel_requested') or exec_state.get('status') == 'cancelled':
+                    self._log_execution(execution_id, 'Execution was cancelled near completion')
+                    return
             self._update_execution_status(execution_id, 'completed', 'Workflow completed successfully')
             self._log_execution(execution_id, 'All steps completed successfully')
             
@@ -164,40 +177,73 @@ class MaintenanceEngine:
         try:
             # Simulate step execution with realistic timing
             if step_name == 'create_backup':
-                time.sleep(2)  # Simulate backup creation
+                for _ in range(20):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             elif step_name == 'drain_nodes':
-                time.sleep(3)  # Simulate node draining
+                for _ in range(30):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             elif step_name == 'apply_patches':
-                time.sleep(5)  # Simulate patch application
+                for _ in range(50):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             elif step_name == 'validate_health':
-                time.sleep(2)  # Simulate health validation
+                for _ in range(20):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 # Simulate occasional validation failure
                 import random
                 return random.random() > 0.1  # 90% success rate
             elif step_name == 'uncordon_nodes':
-                time.sleep(1)  # Simulate node uncordoning
+                for _ in range(10):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             elif step_name == 'pre_upgrade_validation':
-                time.sleep(2)
+                for _ in range(20):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             elif step_name == 'backup_cluster_state':
-                time.sleep(4)
+                for _ in range(40):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             elif step_name == 'upgrade_control_plane':
-                time.sleep(8)
+                for _ in range(80):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             elif step_name == 'upgrade_worker_nodes':
-                time.sleep(10)
+                for _ in range(100):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             elif step_name == 'post_upgrade_validation':
-                time.sleep(3)
+                for _ in range(30):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
             else:
                 # Generic step execution
-                time.sleep(1)
+                for _ in range(10):
+                    if self.executions.get(execution_id, {}).get('cancel_requested'):
+                        return False
+                    time.sleep(0.1)
                 return True
                 
         except Exception as e:
@@ -227,6 +273,10 @@ class MaintenanceEngine:
     def _update_execution_status(self, execution_id: str, status: str, message: str = None):
         """Update execution status"""
         if execution_id in self.executions:
+            # Do not overwrite a cancelled status with running/completed
+            current_status = self.executions[execution_id].get('status')
+            if current_status == 'cancelled' and status not in ['cancelled', 'failed']:
+                return
             self.executions[execution_id]['status'] = status
             self.executions[execution_id]['current_step'] = message
             
@@ -262,6 +312,8 @@ class MaintenanceEngine:
         if execution_id in self.executions:
             execution = self.executions[execution_id]
             if execution['status'] == 'running':
+                # Mark cancellation and update status; the runner will respect this flag
+                self.executions[execution_id]['cancel_requested'] = True
                 self._update_execution_status(execution_id, 'cancelled', 'Execution cancelled by user')
                 self._log_execution(execution_id, 'Execution cancelled by user request')
                 return True

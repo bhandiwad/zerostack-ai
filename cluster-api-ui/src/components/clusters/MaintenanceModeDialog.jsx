@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../../utils/api';
 
-const MaintenanceModeDialog = ({ cluster, onClose, onToggle, loading }) => {
+const MaintenanceModeDialog = ({ cluster, onClose }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [maintenanceConfig, setMaintenanceConfig] = useState({
     enabled: false,
     reason: '',
@@ -24,9 +27,29 @@ const MaintenanceModeDialog = ({ cluster, onClose, onToggle, loading }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onToggle(maintenanceConfig);
+    
+    if (!cluster?.id) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      await api.post(`/clusters/${cluster.id}/maintenance-mode`, {
+        enabled: maintenanceConfig.enabled,
+        reason: maintenanceConfig.reason,
+        duration_minutes: maintenanceConfig.duration_minutes
+      });
+      
+      // Close the dialog on success
+      onClose();
+    } catch (err) {
+      console.error('Error updating maintenance mode:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to update maintenance mode');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getMaintenanceIcon = () => {
@@ -189,17 +212,31 @@ const MaintenanceModeDialog = ({ cluster, onClose, onToggle, loading }) => {
             </div>
           </div>
 
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="cancel-button">
+          <div className="form-actions">
+            <button 
+              type="button" 
+              onClick={onClose}
+              className="btn btn-secondary"
+              disabled={loading}
+            >
               Cancel
             </button>
-            <button
-              type="submit"
-              className={`confirm-button ${maintenanceConfig.enabled ? 'maintenance' : 'active'}`}
-              disabled={loading || (maintenanceConfig.enabled && !maintenanceConfig.reason.trim())}
+            <button 
+              type="submit" 
+              className={`btn ${maintenanceConfig.enabled ? 'btn-warning' : 'btn-primary'}`}
+              disabled={loading}
             >
-              {loading ? '🔄 Processing...' : (maintenanceConfig.enabled ? 'Enable Maintenance Mode' : 'Apply Configuration')}
+              {loading 
+                ? 'Updating...' 
+                : maintenanceConfig.enabled 
+                  ? 'Enter Maintenance Mode' 
+                  : 'Exit Maintenance Mode'}
             </button>
+            {error && (
+              <div className="alert alert-error" style={{ marginTop: '1rem' }}>
+                {error}
+              </div>
+            )}
           </div>
         </form>
       </div>

@@ -8,6 +8,7 @@ import json
 import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify
+import traceback
 
 from .langgraph_orchestrator import langgraph_orchestrator
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 workflow_bp = Blueprint('workflows', __name__)
 
-@workflow_bp.route('/workflows/templates', methods=['GET'])
+@workflow_bp.route('/templates', methods=['GET'])
 def list_workflow_templates():
     """List all available workflow templates"""
     try:
@@ -32,7 +33,7 @@ def list_workflow_templates():
             'error': str(e)
         }), 500
 
-@workflow_bp.route('/workflows/templates/create-defaults', methods=['POST'])
+@workflow_bp.route('/templates/create-defaults', methods=['POST'])
 def create_default_templates():
     """Create default workflow templates"""
     try:
@@ -64,11 +65,22 @@ def create_default_templates():
             'error': str(e)
         }), 500
 
-@workflow_bp.route('/workflows/execute', methods=['POST'])
+@workflow_bp.route('/execute', methods=['POST'])
 def execute_workflow():
     """Execute a workflow from template"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if data is None:
+            # Fallback to raw body parsing
+            try:
+                raw = request.data.decode('utf-8') if request.data else '{}'
+                data = json.loads(raw or '{}')
+            except Exception:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid JSON payload'
+                }), 400
+
         template_id = data.get('template_id')
         input_data = data.get('input_data', {})
         
@@ -81,12 +93,12 @@ def execute_workflow():
         # Execute workflow
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
-        workflow_id = loop.run_until_complete(
-            langgraph_orchestrator.execute_workflow(template_id, input_data)
-        )
-        
-        loop.close()
+        try:
+            workflow_id = loop.run_until_complete(
+                langgraph_orchestrator.execute_workflow(template_id, input_data)
+            )
+        finally:
+            loop.close()
         
         return jsonify({
             'success': True,
@@ -95,13 +107,15 @@ def execute_workflow():
         })
         
     except Exception as e:
-        logger.error(f"Failed to execute workflow: {str(e)}")
+        tb = traceback.format_exc()
+        logger.error(f"Failed to execute workflow: {str(e)}\n{tb}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'traceback': tb
         }), 500
 
-@workflow_bp.route('/workflows/<workflow_id>/status', methods=['GET'])
+@workflow_bp.route('/<workflow_id>/status', methods=['GET'])
 def get_workflow_status(workflow_id):
     """Get status of a specific workflow"""
     try:
@@ -125,7 +139,7 @@ def get_workflow_status(workflow_id):
             'error': str(e)
         }), 500
 
-@workflow_bp.route('/workflows/types', methods=['GET'])
+@workflow_bp.route('/types', methods=['GET'])
 def get_workflow_types():
     """Get available workflow types"""
     try:
@@ -165,7 +179,7 @@ def get_workflow_types():
             'error': str(e)
         }), 500
 
-@workflow_bp.route('/workflows/active', methods=['GET'])
+@workflow_bp.route('/active', methods=['GET'])
 def list_active_workflows():
     """List all active workflows"""
     try:
@@ -184,7 +198,7 @@ def list_active_workflows():
             'error': str(e)
         }), 500
 
-@workflow_bp.route('/workflows/design/create', methods=['POST'])
+@workflow_bp.route('/design/create', methods=['POST'])
 def create_workflow_from_design():
     """Create a LangGraph workflow from visual design"""
     try:
@@ -217,7 +231,7 @@ def create_workflow_from_design():
             'error': str(e)
         }), 500
 
-@workflow_bp.route('/workflows/design/execute', methods=['POST'])
+@workflow_bp.route('/design/execute', methods=['POST'])
 def execute_custom_workflow():
     """Execute a custom designed workflow"""
     try:
@@ -251,7 +265,7 @@ def execute_custom_workflow():
             'error': str(e)
         }), 500
 
-@workflow_bp.route('/workflows/initialize', methods=['POST'])
+@workflow_bp.route('/initialize', methods=['POST'])
 def initialize_orchestrator():
     """Initialize the workflow orchestrator"""
     try:

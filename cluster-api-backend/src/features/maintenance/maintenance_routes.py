@@ -13,7 +13,7 @@ maintenance_bp = Blueprint('maintenance', __name__)
 maintenance_engine = MaintenanceEngine()
 maintenance_scheduler = MaintenanceScheduler()
 
-@maintenance_bp.route('/maintenance/workflows', methods=['GET'])
+@maintenance_bp.route('/workflows', methods=['GET'])
 def get_maintenance_workflows():
     """Get all available maintenance workflow templates"""
     try:
@@ -104,7 +104,7 @@ def get_maintenance_workflows():
             'error': str(e)
         }), 500
 
-@maintenance_bp.route('/maintenance/execute', methods=['POST'])
+@maintenance_bp.route('/execute', methods=['POST'])
 def execute_maintenance_workflow():
     """Execute a maintenance workflow"""
     try:
@@ -158,7 +158,7 @@ def execute_maintenance_workflow():
             'error': str(e)
         }), 500
 
-@maintenance_bp.route('/maintenance/status/<execution_id>', methods=['GET'])
+@maintenance_bp.route('/status/<execution_id>', methods=['GET'])
 def get_maintenance_status(execution_id):
     """Get status of a maintenance workflow execution"""
     try:
@@ -180,7 +180,7 @@ def get_maintenance_status(execution_id):
             'error': str(e)
         }), 500
 
-@maintenance_bp.route('/maintenance/history', methods=['GET'])
+@maintenance_bp.route('/history', methods=['GET'])
 def get_maintenance_history():
     """Get maintenance execution history"""
     try:
@@ -201,7 +201,7 @@ def get_maintenance_history():
             'error': str(e)
         }), 500
 
-@maintenance_bp.route('/maintenance/cancel/<execution_id>', methods=['POST'])
+@maintenance_bp.route('/cancel/<execution_id>', methods=['POST'])
 def cancel_maintenance_workflow(execution_id):
     """Cancel a running or scheduled maintenance workflow"""
     try:
@@ -223,7 +223,7 @@ def cancel_maintenance_workflow(execution_id):
             'error': str(e)
         }), 500
 
-@maintenance_bp.route('/maintenance/drift/detect', methods=['POST'])
+@maintenance_bp.route('/drift/detect', methods=['POST'])
 def detect_configuration_drift():
     """Detect configuration drift in cluster"""
     try:
@@ -280,7 +280,7 @@ def detect_configuration_drift():
             'error': str(e)
         }), 500
 
-@maintenance_bp.route('/maintenance/drift/correct', methods=['POST'])
+@maintenance_bp.route('/drift/correct', methods=['POST'])
 def correct_configuration_drift():
     """Auto-correct detected configuration drift"""
     try:
@@ -322,7 +322,7 @@ def correct_configuration_drift():
             'error': str(e)
         }), 500
 
-@maintenance_bp.route('/maintenance/health/predict', methods=['POST'])
+@maintenance_bp.route('/health/predict', methods=['POST'])
 def predict_maintenance_needs():
     """Predict future maintenance needs using AI analysis"""
     try:

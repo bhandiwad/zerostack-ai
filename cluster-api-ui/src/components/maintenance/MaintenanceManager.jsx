@@ -1,21 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlayIcon, 
-  PauseIcon, 
-  StopIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  CogIcon,
-  ArrowRightIcon,
-  ChartBarIcon,
-  WrenchScrewdriverIcon,
-  ServerIcon,
-  CalendarIcon,
-  ShieldCheckIcon,
-  DocumentDuplicateIcon,
-  ScaleIcon
-} from '@heroicons/react/24/outline';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import Button from '../ui/Button';
+
+// Icon components (explicit sizes to avoid oversized rendering)
+const ShieldCheckIcon = ({ className, size = 20 }) => (
+  <svg className={className} width={size} height={size} fill="currentColor" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true" role="img">
+    <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
+  </svg>
+);
+
+const ArrowRightIcon = ({ className, size = 14 }) => (
+  <svg className={className} width={size} height={size} fill="currentColor" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true" role="img">
+    <path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/>
+  </svg>
+);
+
+const DocumentDuplicateIcon = ({ className, size = 20 }) => (
+  <svg className={className} width={size} height={size} fill="currentColor" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true" role="img">
+    <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/>
+  </svg>
+);
+
+const ScaleIcon = ({ className, size = 20 }) => (
+  <svg className={className} width={size} height={size} fill="currentColor" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true" role="img">
+    <path d="M12,3L2,12H5V20H19V12H22L12,3M7,18V10.5L12,5.5L17,10.5V18H7Z"/>
+  </svg>
+);
+
+const CogIcon = ({ className, size = 20 }) => (
+  <svg className={className} width={size} height={size} fill="currentColor" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true" role="img">
+    <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+  </svg>
+);
 
 const API_BASE = 'http://localhost:5002/api';
 
@@ -52,6 +68,19 @@ const MaintenanceManager = () => {
       }
     } catch (error) {
       console.error('Failed to load maintenance workflows:', error);
+    }
+  };
+
+  const cancelExecution = async (executionId) => {
+    try {
+      await fetch(`${API_BASE}/maintenance/cancel/${executionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      // Refresh history to reflect cancellation
+      loadExecutionHistory();
+    } catch (error) {
+      console.error('Failed to cancel execution:', error);
     }
   };
 
@@ -181,7 +210,7 @@ const MaintenanceManager = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-50';
-      case 'running': return 'text-blue-600 bg-blue-50';
+      case 'running': return 'text-indigo-600 bg-indigo-50';
       case 'failed': return 'text-red-600 bg-red-50';
       case 'cancelled': return 'text-gray-600 bg-gray-50';
       default: return 'text-yellow-600 bg-yellow-50';
@@ -198,266 +227,143 @@ const MaintenanceManager = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Automated Maintenance</h1>
-          <p className="text-gray-600">Manage cluster maintenance workflows, detect configuration drift, and predict maintenance needs</p>
-        </div>
-
-        {/* Predictive Maintenance Section */}
-        {predictions && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                <ChartBarIcon className="h-6 w-6 mr-2 text-blue-600" />
-                Predictive Maintenance
-              </h2>
-              <button
-                onClick={loadPredictions}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-              >
-                Refresh Predictions
-              </button>
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Hero */}
+      <Card hover>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h1 className="text-xl font-semibold text-gray-900">Maintenance</h1>
+              <p className="text-sm text-gray-600">Execute workflows, scan drift, and view recent runs</p>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {predictions.predictions.map((prediction, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(prediction.severity)}`}>
-                      {prediction.severity.toUpperCase()}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {Math.round(prediction.confidence * 100)}% confidence
-                    </span>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="px-2 py-0.5 text-xs rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Ops</span>
+              <span className="px-2 py-0.5 text-xs rounded-full bg-gray-50 text-gray-700 border border-gray-200">Maintenance</span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="small" onClick={loadPredictions}>Refresh</Button>
+            <Button variant="warning" size="small" onClick={detectConfigurationDrift} disabled={loading} loading={loading}>
+              {loading ? 'Scanning...' : 'Scan Drift'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Main content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Workflows */}
+        <Card className="lg:col-span-2" hover>
+          <CardHeader>
+            <CardTitle>Workflows</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {workflows.map((w) => (
+                <div key={w.id} className="flex items-start justify-between p-3 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">{w.name}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded bg-gray-50 text-gray-700 border border-gray-200">{w.category}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{w.description}</p>
+                    <p className="text-xs text-gray-500 mt-1">Est. {w.estimated_duration} min</p>
                   </div>
-                  <h3 className="font-medium text-gray-900 mb-1">{prediction.type.replace('_', ' ').toUpperCase()}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{prediction.description}</p>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Predicted: {new Date(prediction.predicted_date).toLocaleDateString()}
-                  </p>
-                  {prediction.automation_available && (
-                    <button className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">
-                      Auto-fix Available
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Button size="small" onClick={() => executeWorkflow(w.id)}>Execute</Button>
+                    <Button variant="secondary" size="small" onClick={() => { setSelectedWorkflow(w); setShowScheduleModal(true); }}>Schedule</Button>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
 
-        {/* Configuration Drift Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <WrenchScrewdriverIcon className="h-6 w-6 mr-2 text-orange-600" />
-              Configuration Drift Detection
-            </h2>
-            <button
-              onClick={detectConfigurationDrift}
-              disabled={loading}
-              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50"
-            >
-              {loading ? 'Scanning...' : 'Scan for Drift'}
-            </button>
-          </div>
-
-          {driftResults && (
-            <div className="mt-4">
-              {driftResults.drift_detected ? (
-                <div className="border border-orange-200 rounded-lg p-4 bg-orange-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-medium text-orange-900">
-                      Configuration Drift Detected ({driftResults.drift_items.length} issues)
-                    </h3>
-                    {driftResults.auto_correction_available && (
-                      <button
-                        onClick={correctConfigurationDrift}
-                        className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-sm"
-                      >
-                        Auto-Correct
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {driftResults.drift_items.map((item, index) => (
-                      <div key={index} className="bg-white border border-orange-200 rounded p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-gray-900">
-                            {item.resource_type}/{item.resource_name}
-                          </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(item.severity)}`}>
-                            {item.severity}
-                          </span>
+        {/* Right: Active + Predictions */}
+        <div className="space-y-6">
+          {activeExecutions.length > 0 && (
+            <Card hover>
+              <CardHeader>
+                <CardTitle>Active</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {activeExecutions.map((e) => (
+                    <div key={e.id} className="p-3 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900">{e.workflow_id}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] ${getStatusColor(e.status)}`}>{e.status}</span>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          Expected: {item.expected_value} → Actual: {item.actual_value}
-                        </p>
+                        <Button variant="danger" size="small" onClick={() => cancelExecution(e.id)}>Cancel</Button>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex items-center mt-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2 mr-3">
+                          <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${e.progress || 0}%` }} />
+                        </div>
+                        <span className="text-xs text-gray-600">{e.progress || 0}%</span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-1">Started: {new Date(e.started_at).toLocaleString()}</p>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="text-center py-4 text-green-600">
-                  <CheckCircleIcon className="h-8 w-8 mx-auto mb-2" />
-                  No configuration drift detected
+              </CardContent>
+            </Card>
+          )}
+
+          {predictions && predictions.predictions?.length > 0 && (
+            <Card hover>
+              <CardHeader>
+                <CardTitle>Predictions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {predictions.predictions.map((p, idx) => (
+                    <div key={idx} className="p-3 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900">{p.type.replace('_', ' ')}</span>
+                        <span className={`px-2 py-0.5 rounded text-[11px] ${getSeverityColor(p.severity)}`}>{p.severity}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{p.description}</p>
+                      <p className="text-[11px] text-gray-500 mt-1">Predicted: {new Date(p.predicted_date).toLocaleDateString()} • {Math.round(p.confidence * 100)}% confidence</p>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
+      </div>
 
-        {/* Active Executions */}
-        {activeExecutions.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <PlayIcon className="h-6 w-6 mr-2 text-blue-600" />
-              Active Maintenance ({activeExecutions.length})
-            </h2>
-            
-            <div className="space-y-3">
-              {activeExecutions.map((execution) => (
-                <div key={execution.id} className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-gray-900">{execution.workflow_id}</h3>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600">{execution.progress}%</span>
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${execution.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
+      {/* History (condensed) */}
+      <Card hover>
+        <CardHeader>
+          <CardTitle>Recent Executions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {executionHistory.slice(0, 10).map((ex) => (
+              <div key={ex.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900 truncate">{ex.workflow_id}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] ${getStatusColor(ex.status)}`}>{ex.status}</span>
                   </div>
-                  <p className="text-sm text-gray-600">{execution.current_step}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Started: {new Date(execution.started_at).toLocaleString()}
-                  </p>
+                  <p className="text-[11px] text-gray-500 mt-1">{new Date(ex.started_at).toLocaleString()} {ex.completed_at ? `• ${Math.round((new Date(ex.completed_at) - new Date(ex.started_at)) / 1000)}s` : '• Running...'}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Available Workflows */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Available Maintenance Workflows</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {workflows.map((workflow) => (
-              <div key={workflow.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    {getWorkflowIcon(workflow.category)}
-                    <h3 className="font-medium text-gray-900">{workflow.name}</h3>
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="w-16 bg-gray-200 rounded-full h-2">
+                    <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${ex.progress || 0}%` }} />
                   </div>
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                    {workflow.category}
-                  </span>
-                </div>
-                
-                <p className="text-sm text-gray-600 mb-3">{workflow.description}</p>
-                
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                  <span className="flex items-center">
-                    <ClockIcon className="h-3 w-3 mr-1" />
-                    {workflow.duration}
-                  </span>
-                  <span>{workflow.steps.length} steps</span>
-                </div>
-                
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => executeWorkflow(workflow.id)}
-                    disabled={loading}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium disabled:opacity-50"
-                  >
-                    Run Now
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedWorkflow(workflow);
-                      setShowScheduleModal(true);
-                    }}
-                    className="px-3 py-2 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
-                  >
-                    <CalendarIcon className="h-4 w-4" />
-                  </button>
+                  <span className="text-xs text-gray-500">{ex.progress || 0}%</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Execution History */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Maintenance History</h2>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Workflow
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Started
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Duration
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Progress
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {executionHistory.slice(0, 10).map((execution) => (
-                  <tr key={execution.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{execution.workflow_id}</div>
-                      <div className="text-sm text-gray-500">{execution.cluster_id}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(execution.status)}`}>
-                        {execution.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(execution.started_at).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {execution.completed_at ? 
-                        `${Math.round((new Date(execution.completed_at) - new Date(execution.started_at)) / 1000)}s` : 
-                        'Running...'
-                      }
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full"
-                            style={{ width: `${execution.progress || 0}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm text-gray-500">{execution.progress || 0}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

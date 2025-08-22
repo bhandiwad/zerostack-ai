@@ -31,7 +31,7 @@ from src.features.agents.training_routes import training_bp
 from src.features.agents.management_routes import management_bp
 from src.features.ai_endpoints.ai_endpoints_routes import ai_endpoints_bp
 from src.features.debugging.debugging_routes import debugging_bp
-from src.features.workflows.workflow_routes import workflows_bp
+from src.features.workflows.workflow_routes import workflow_bp
 from src.features.maintenance.maintenance_routes import maintenance_bp
 from src.features.debugging.debugging_routes import debugging_bp
 from src.features.agents.memory_routes import memory_bp
@@ -77,7 +77,7 @@ def create_app(config_name='dev'):
     app.register_blueprint(management_bp, url_prefix='/api/management')
     app.register_blueprint(ai_endpoints_bp, url_prefix='/api/ai-endpoints')
     app.register_blueprint(debugging_bp, url_prefix='/api/debugging')
-    app.register_blueprint(workflows_bp, url_prefix='/api/workflows')
+    app.register_blueprint(workflow_bp, url_prefix='/api/workflows')
     app.register_blueprint(maintenance_bp, url_prefix='/api/maintenance')
     app.register_blueprint(memory_bp, url_prefix='/api/memory')
     app.register_blueprint(a2a_bp, url_prefix='/api/a2a')

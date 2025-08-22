@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './ClusterExplorer.css';
 
-const ClusterExplorer = ({ cluster, apiCall, showNotification }) => {
+import { api } from '../utils/api';
+
+const ClusterExplorer = ({ cluster, showNotification }) => {
   const [selectedNamespace, setSelectedNamespace] = useState('default');
   const [namespaces, setNamespaces] = useState([]);
   const [resources, setResources] = useState({});
@@ -36,34 +38,31 @@ const ClusterExplorer = ({ cluster, apiCall, showNotification }) => {
 
   const loadNamespaces = async () => {
     try {
-      const result = await apiCall(`/clusters/${cluster.id}/namespaces`);
-      if (result && result.success) {
-        setNamespaces(result.data || []);
-        if (result.data && result.data.length > 0 && !result.data.find(ns => ns.name === selectedNamespace)) {
-          setSelectedNamespace(result.data[0].name);
-        }
+      const result = await api.get(`/clusters/${cluster.id}/namespaces`);
+      const namespaces = result?.data || [];
+      setNamespaces(namespaces);
+      if (namespaces.length > 0 && !namespaces.find(ns => ns.name === selectedNamespace)) {
+        setSelectedNamespace(namespaces[0].name);
       }
     } catch (error) {
       console.error('Error loading namespaces:', error);
-      showNotification('Failed to load namespaces', 'error');
+      showNotification(`Failed to load namespaces: ${error.message || 'Unknown error'}`, 'error');
     }
   };
 
   const loadResources = async () => {
-    if (!cluster || !selectedNamespace) return;
+    if (!selectedNamespace) return;
 
     setLoading(true);
     try {
-      const result = await apiCall(`/clusters/${cluster.id}/namespaces/${selectedNamespace}/${resourceType}`);
-      if (result && result.success) {
-        setResources(prev => ({
-          ...prev,
-          [resourceType]: result.data || []
-        }));
-      }
+      const result = await api.get(`/clusters/${cluster.id}/namespaces/${selectedNamespace}/${resourceType}`);
+      setResources(prev => ({
+        ...prev,
+        [resourceType]: result?.data || []
+      }));
     } catch (error) {
       console.error(`Error loading ${resourceType}:`, error);
-      showNotification(`Failed to load ${resourceType}`, 'error');
+      showNotification(`Failed to load ${resourceType}: ${error.message || 'Unknown error'}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -72,59 +71,40 @@ const ClusterExplorer = ({ cluster, apiCall, showNotification }) => {
   const handleResourceClick = async (resource) => {
     setSelectedResource(resource);
     try {
-      const result = await apiCall(`/clusters/${cluster.id}/namespaces/${selectedNamespace}/${resourceType}/${resource.name}/yaml`);
-      if (result && result.success) {
-        setYamlContent(result.data);
-        setShowYamlEditor(true);
-      }
+      const result = await api.get(`/clusters/${cluster.id}/namespaces/${selectedNamespace}/${resourceType}/${resource.name}/yaml`);
+      setYamlContent(result?.data || '');
+      setShowYamlEditor(true);
     } catch (error) {
       console.error('Error loading resource YAML:', error);
-      showNotification('Failed to load resource details', 'error');
+      showNotification(`Failed to load resource details: ${error.message || 'Unknown error'}`, 'error');
     }
   };
 
   const handleDeleteResource = async (resource) => {
-        if (!window.confirm(`Are you sure you want to delete ${resourceType.slice(0, -1)} '${resource.name}'?`)) {
+    if (!confirm(`Are you sure you want to delete ${resourceType} ${resource.name}?`)) {
       return;
     }
 
     try {
-      const result = await apiCall(`/clusters/${cluster.id}/namespaces/${selectedNamespace}/${resourceType}/${resource.name}`, {
-        method: 'DELETE'
-      });
-      
-      if (result && result.success) {
-        showNotification(`${resourceType.slice(0, -1)} "${resource.name}" deleted successfully`);
-        loadResources();
-        if (selectedResource && selectedResource.name === resource.name) {
-          setSelectedResource(null);
-          setShowYamlEditor(false);
-        }
-      } else {
-        throw new Error(result?.error || 'Failed to delete resource');
-      }
+      await api.delete(`/clusters/${cluster.id}/namespaces/${selectedNamespace}/${resourceType}/${resource.name}`);
+      showNotification(`${resourceType} ${resource.name} deleted successfully`);
+      loadResources();
     } catch (error) {
-      console.error('Error deleting resource:', error);
-      showNotification(`Failed to delete ${resourceType.slice(0, -1)}: ${error.message}`, 'error');
+      console.error(`Error deleting ${resourceType}:`, error);
+      showNotification(`Failed to delete ${resourceType}: ${error.message || 'Unknown error'}`, 'error');
     }
   };
 
   const handleScaleDeployment = async (deployment, replicas) => {
     try {
-      const result = await apiCall(`/clusters/${cluster.id}/namespaces/${selectedNamespace}/deployments/${deployment.name}/scale`, {
-        method: 'PATCH',
-        body: JSON.stringify({ replicas: parseInt(replicas) })
+      await api.patch(`/clusters/${cluster.id}/namespaces/${selectedNamespace}/deployments/${deployment.name}/scale`, {
+        replicas: parseInt(replicas)
       });
-      
-      if (result && result.success) {
-        showNotification(`Deployment "${deployment.name}" scaled to ${replicas} replicas`);
-        loadResources();
-      } else {
-        throw new Error(result?.error || 'Failed to scale deployment');
-      }
+      showNotification(`Scaled deployment ${deployment.name} to ${replicas} replicas`);
+      loadResources();
     } catch (error) {
       console.error('Error scaling deployment:', error);
-      showNotification(`Failed to scale deployment: ${error.message}`, 'error');
+      showNotification(`Failed to scale deployment: ${error.message || 'Unknown error'}`, 'error');
     }
   };
 

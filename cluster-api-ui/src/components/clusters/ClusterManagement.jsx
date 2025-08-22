@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import apiCall from '../../lib/api';
+import { api } from '../../utils/api';
 import Notification from '../common/Notification';
 import UpgradeKubernetesDialog from './UpgradeKubernetesDialog';
 import NodeManagementDialog from './NodeManagementDialog';
@@ -44,16 +44,26 @@ const ClusterManagement = () => {
   const loadClusters = async () => {
     setLoading(true);
     try {
-      const result = await apiCall('/mt/clusters');
-      if (result && result.success) {
-        setClusters(result.data || []);
-      } else {
-        showNotification('Failed to load clusters', 'error');
-      }
+      const result = await api.get('/multitenant/clusters');
+      setClusters(Array.isArray(result) ? result : []);
     } catch (error) {
-      showNotification('Error loading clusters: ' + error.message, 'error');
+      console.error('Error loading clusters:', error);
+      showNotification('Error loading clusters: ' + (error.message || 'Unknown error'), 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadClusterNodes = async (clusterId) => {
+    setNodesLoading(true);
+    try {
+      const result = await api.get(`/clusters/${clusterId}/nodes`);
+      setClusterNodes(result?.data || []);
+    } catch (error) {
+      console.error('Error loading cluster nodes:', error);
+      showNotification(`Failed to load cluster nodes: ${error.message || 'Unknown error'}`, 'error');
+    } finally {
+      setNodesLoading(false);
     }
   };
 
@@ -151,22 +161,28 @@ const ClusterManagement = () => {
     setSelectedCluster(cluster);
     setShowMaintenanceDialog(true);
   };
+  
+  const handleDialogClose = () => {
+    setSelectedCluster(null);
+    setShowScaleDialog(false);
+    setShowNodeManagementDialog(false);
+    setShowUpgradeDialog(false);
+    setShowMaintenanceDialog(false);
+    loadClusters(); // Refresh cluster data after any operation
+  };
 
-  const handleDeleteCluster = async (cluster) => {
-    if (!confirm(`Are you sure you want to delete cluster "${cluster.name}"? This action cannot be undone.`)) {
+  const deleteCluster = async (cluster) => {
+    if (!window.confirm(`Are you sure you want to delete cluster ${cluster.name}? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      const result = await apiCall(`/clusters/${cluster.id}`, { method: 'DELETE' });
-      if (result && result.success) {
-        showNotification(`Cluster ${cluster.name} deleted successfully`, 'success');
-        loadClusters();
-      } else {
-        showNotification(`Failed to delete cluster: ${result?.error || 'Unknown error'}`, 'error');
-      }
+      await api.delete(`/clusters/${cluster.id}`);
+      showNotification(`Cluster ${cluster.name} deleted successfully`, 'success');
+      loadClusters();
     } catch (error) {
-      showNotification(`Error deleting cluster: ${error.message}`, 'error');
+      console.error('Error deleting cluster:', error);
+      showNotification(`Failed to delete cluster: ${error.message || 'Unknown error'}`, 'error');
     }
   };
 
@@ -421,12 +437,7 @@ const ClusterManagement = () => {
       {selectedCluster && showScaleDialog && (
         <ScaleClusterDialog
           cluster={selectedCluster}
-          onClose={() => setShowScaleDialog(false)}
-          onScale={() => {
-            setShowScaleDialog(false);
-            loadClusters();
-          }}
-          loading={scalingInProgress}
+          onClose={handleDialogClose}
         />
       )}
 
@@ -435,32 +446,21 @@ const ClusterManagement = () => {
           cluster={selectedCluster}
           nodes={clusterNodes}
           loading={nodesLoading}
-          onClose={() => setShowNodeManagementDialog(false)}
-          onRefresh={loadClusters}
+          onClose={handleDialogClose}
         />
       )}
 
       {selectedCluster && showUpgradeDialog && (
         <UpgradeKubernetesDialog
           cluster={selectedCluster}
-          onClose={() => setShowUpgradeDialog(false)}
-          onUpgrade={() => {
-            setShowUpgradeDialog(false);
-            loadClusters();
-          }}
-          loading={upgradeInProgress}
+          onClose={handleDialogClose}
         />
       )}
 
       {selectedCluster && showMaintenanceDialog && (
         <MaintenanceModeDialog
           cluster={selectedCluster}
-          onClose={() => setShowMaintenanceDialog(false)}
-          onToggle={() => {
-            setShowMaintenanceDialog(false);
-            loadClusters();
-          }}
-          loading={maintenanceOperationInProgress}
+          onClose={handleDialogClose}
         />
       )}
     </div>

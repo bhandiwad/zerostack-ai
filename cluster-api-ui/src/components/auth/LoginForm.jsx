@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import apiCall from '../../lib/api';
+import { api } from '../../utils/api';
 
 const LoginForm = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -14,21 +14,32 @@ const LoginForm = ({ onLogin }) => {
     setLoading(true);
     setError('');
 
-    const result = await apiCall('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(formData)
-    });
-
-    if (result && result.success) {
-      localStorage.setItem('jwt_token', result.data.token);
-      localStorage.setItem('user_data', JSON.stringify(result.data.user));
-      localStorage.setItem('organization_data', JSON.stringify(result.data.organization));
-      onLogin(result.data);
-    } else {
-      setError(result?.error || 'Login failed');
+    try {
+      const result = await api.post('/auth/login', formData);
+      
+      // Store auth data
+      if (result?.data?.token) {
+        localStorage.setItem('jwt_token', result.data.token);
+        
+        // Store user and org data if available
+        if (result.data.user) {
+          localStorage.setItem('user_data', JSON.stringify(result.data.user));
+        }
+        if (result.data.organization) {
+          localStorage.setItem('organization_data', JSON.stringify(result.data.organization));
+        }
+        
+        // Notify parent component of successful login
+        onLogin(result.data);
+      } else {
+        throw new Error('Invalid login response');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error.response?.data?.error || error.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleDemoLogin = (email, password) => {

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import Button from '../ui/Button';
 import DeploymentTemplates from './DeploymentTemplates';
 import ClusterTemplates from './ClusterTemplates';
 import CostEstimator from './CostEstimator';
@@ -160,41 +162,57 @@ const TemplateHub = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Navigation Breadcrumb */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <nav className="flex items-center space-x-2 text-sm">
-              <button
-                onClick={handleBackToTemplates}
-                className={`hover:text-blue-600 ${currentView === 'templates' ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}
-              >
-                Templates
-              </button>
-              {currentView !== 'templates' && (
-                <>
-                  <span className="text-gray-400">/</span>
-                  <span className="text-gray-900 font-semibold">
-                    {currentView === 'deploy' ? 'Deploy' : 'Success'}
-                  </span>
-                </>
-              )}
-            </nav>
-            
-            {userPreferences && (
-              <div className="text-sm text-gray-600">
-                Optimized for: <span className="font-semibold text-blue-600">
-                  {userPreferences.primary_pain?.replace('_', ' ') || 'your needs'}
-                </span>
+    <div className="space-y-6">
+      {/* Header Section with Stripe-inspired design */}
+      {currentView === 'templates' && (
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900 mb-2">📦 Template Hub</h1>
+              <p className="text-gray-600">Deploy production-ready Kubernetes clusters and applications</p>
+            </div>
+            <div className="text-right">
+              <div className="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                Template Library
               </div>
-            )}
+              <div className="text-xs text-gray-500 mt-1">
+                Production Ready
+              </div>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* Navigation Breadcrumb */}
+      <div className="flex items-center justify-between">
+        <nav className="flex items-center space-x-2 text-sm">
+          <button
+            onClick={handleBackToTemplates}
+            className={`hover:text-blue-600 ${currentView === 'templates' ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}
+          >
+            Templates
+          </button>
+          {currentView !== 'templates' && (
+            <>
+              <span className="text-gray-400">/</span>
+              <span className="text-gray-900 font-semibold">
+                {currentView === 'deploy' ? 'Deploy' : 'Success'}
+              </span>
+            </>
+          )}
+        </nav>
+        
+        {userPreferences && (
+          <div className="text-sm text-gray-600">
+            Optimized for: <span className="font-semibold text-blue-600">
+              {userPreferences.primary_pain?.replace('_', ' ') || 'your needs'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
-      <div className="py-8">
+      <div>
         {renderCurrentView()}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import apiCall from '../../lib/api.js';
+import { api } from '../../utils/api';
 import Notification from '../../components/common/Notification';
 
 const CloudAccountManager = () => {
@@ -29,12 +29,11 @@ const CloudAccountManager = () => {
   const loadCloudAccounts = async () => {
     setLoading(true);
     try {
-      const result = await apiCall('/cloud-accounts');
-      if (result && result.success) {
-        setAccounts(result.data || []);
-      }
+      const result = await api.get('/cloud-accounts');
+      setAccounts(result?.data || []);
     } catch (error) {
       console.error('Error loading cloud accounts:', error);
+      showNotification('Failed to load cloud accounts: ' + (error.message || 'Unknown error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -81,43 +80,43 @@ const CloudAccountManager = () => {
     e.preventDefault();
     setLoading(true);
 
-    const result = await apiCall('/cloud-accounts', {
-      method: 'POST',
-      body: JSON.stringify(formData)
-    });
-
-    if (result && result.success) {
-      showNotification(`✅ Cloud account "${formData.name}" added successfully!`);
-      setShowAddForm(false);
-      setFormData({
-        name: '',
-        provider: 'aws',
-        credentials: {
-          aws_access_key_id: '',
-          aws_secret_access_key: '',
-          region: 'us-east-1'
-        }
-      });
-      loadCloudAccounts();
-    } else {
-      showNotification(`❌ Failed to add cloud account: ${result?.error || 'Unknown error'}`, 'error');
+    try {
+      const result = await api.post('/cloud-accounts', formData);
+      
+      if (result?.success) {
+        showNotification(`✅ Cloud account "${formData.name}" added successfully!`);
+        setShowAddForm(false);
+        setFormData({
+          name: '',
+          provider: 'aws',
+          credentials: {
+            aws_access_key_id: '',
+            aws_secret_access_key: '',
+            region: 'us-east-1'
+          }
+        });
+        loadCloudAccounts();
+      } else {
+        showNotification(`❌ Failed to add cloud account: ${result?.error || 'Unknown error'}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error adding cloud account:', error);
+      showNotification(`❌ Failed to add cloud account: ${error.message || 'Unknown error'}`, 'error');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const deleteAccount = async (accountId) => {
     if (!confirm('Are you sure you want to delete this cloud account?')) return;
 
-    const result = await apiCall(`/cloud-accounts/${accountId}`, {
-      method: 'DELETE'
-    });
-
-    if (result && result.success) {
+    try {
+      await api.delete(`/cloud-accounts/${accountId}`);
       showNotification('✅ Cloud account deleted successfully!');
       loadCloudAccounts();
-    } else {
-      showNotification(`❌ Failed to delete cloud account: ${result?.error || 'Unknown error'}`, 'error');
+    } catch (error) {
+      console.error('Error deleting cloud account:', error);
+      showNotification(`❌ Failed to delete cloud account: ${error.message || 'Unknown error'}`, 'error');
     }
   };
 

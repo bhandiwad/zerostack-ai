@@ -4,6 +4,7 @@ Advanced multi-agent workflow orchestration using LangGraph for Step 4 of user j
 """
 
 import asyncio
+import threading
 import json
 import logging
 from datetime import datetime
@@ -279,10 +280,15 @@ class LangGraphOrchestrator:
         
         # Build and execute LangGraph workflow
         try:
-            graph = self._build_langgraph_workflow(template_id)
+            graph = await self._build_langgraph_workflow(template_id)
             
-            # Execute workflow asynchronously
-            asyncio.create_task(self._execute_workflow_async(workflow_id, graph, initial_state))
+            # Execute workflow asynchronously in a background thread with its own event loop
+            def _run_workflow():
+                try:
+                    asyncio.run(self._execute_workflow_async(workflow_id, graph, initial_state))
+                except Exception as e:
+                    logger.error(f"Background workflow {workflow_id} failed: {str(e)}")
+            threading.Thread(target=_run_workflow, daemon=True).start()
             
             return workflow_id
             

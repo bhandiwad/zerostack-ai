@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import apiCall from '../../lib/api';
+import { api } from '../../utils/api';
 import { HelmCharts as HelmApplications } from '../../features/helm';
 import Notification from '../../components/common/Notification';
 
@@ -20,18 +20,14 @@ const HelmApplicationsPage = () => {
   const loadClusters = async () => {
     setLoading(true);
     try {
-      const result = await apiCall('/mt/clusters');
-      if (result && result.success) {
-        setClusters(result.data);
-        if (result.data && result.data.length > 0 && !selectedCluster) {
-          setSelectedCluster(result.data[0]);
-        }
-      } else {
-        showNotification('Failed to load clusters', 'error');
+      const result = await api.get('/multitenant/clusters');
+      setClusters(Array.isArray(result) ? result : []);
+      if (Array.isArray(result) && result.length > 0 && !selectedCluster) {
+        setSelectedCluster(result[0]);
       }
     } catch (error) {
       console.error('Error loading clusters:', error);
-      showNotification('Error loading clusters', 'error');
+      showNotification('Error loading clusters: ' + (error.message || 'Unknown error'), 'error');
     } finally {
       setLoading(false);
     }

@@ -29,7 +29,7 @@ const ClusterDetail = ({ apiCall, showNotification }) => {
   useEffect(() => {
     const fetchCluster = async () => {
       try {
-        const data = await apiCall(`/clusters/${clusterId}`);
+        const data = await apiCall(`/multitenant/clusters/${clusterId}`);
         setCluster(data);
         setMaintenanceMode(prev => ({
           ...prev,
@@ -57,7 +57,7 @@ const ClusterDetail = ({ apiCall, showNotification }) => {
     setMaintenanceMode(prev => ({ ...prev, isSaving: true }));
     
     try {
-      const result = await apiCall(`/clusters/${clusterId}/maintenance-mode`, {
+      const result = await apiCall(`/multitenant/clusters/${clusterId}/maintenance-mode`, {
         method: 'POST',
         body: JSON.stringify({
           enabled: !maintenanceMode.enabled,
@@ -91,7 +91,7 @@ const ClusterDetail = ({ apiCall, showNotification }) => {
   const handleDeleteCluster = async () => {
     if (window.confirm('Are you sure you want to delete this cluster? This action cannot be undone.')) {
       try {
-        await apiCall(`/clusters/${clusterId}`, { method: 'DELETE' });
+        await apiCall(`/multitenant/clusters/${clusterId}`, { method: 'DELETE' });
         showNotification('Cluster deleted successfully', 'success');
         navigate('/clusters');
       } catch (error) {

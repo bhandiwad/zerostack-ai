@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Paper, Button, CircularProgress, Divider, Grid, Chip } from '@mui/material';
-import { apiCall } from '../../utils/api';
+import { api } from '../../utils/api';
 import UpgradeKubernetesDialog from '../UpgradeKubernetesDialog';
 
 const ClusterDetails = () => {
@@ -18,12 +18,8 @@ const ClusterDetails = () => {
     const fetchCluster = async () => {
       try {
         setLoading(true);
-        const result = await apiCall(`/mt/clusters/${id}`);
-        if (result && result.success) {
-          setCluster(result.data);
-        } else {
-          throw new Error(result?.error || 'Failed to load cluster details');
-        }
+        const result = await api.get(`/clusters/${id}`);
+        setCluster(result?.data);
       } catch (err) {
         console.error('Error loading cluster:', err);
         setError(err.message || 'Failed to load cluster details');
@@ -42,21 +38,12 @@ const ClusterDetails = () => {
     
     setUpgradeInProgress(true);
     try {
-      const result = await apiCall(`/clusters/${cluster.id}/upgrade`, {
-        method: 'POST',
-        body: JSON.stringify({ version: targetVersion })
-      });
+      await api.post(`/clusters/${cluster.id}/upgrade`, { version: targetVersion });
       
-      if (result && result.success) {
-        // Refresh cluster data
-        const updatedCluster = await apiCall(`/mt/clusters/${id}`);
-        if (updatedCluster && updatedCluster.success) {
-          setCluster(updatedCluster.data);
-        }
-        setShowUpgradeDialog(false);
-      } else {
-        throw new Error(result?.error || 'Failed to initiate upgrade');
-      }
+      // Refresh cluster data
+      const updatedCluster = await api.get(`/clusters/${id}`);
+      setCluster(updatedCluster?.data);
+      setShowUpgradeDialog(false);
     } catch (error) {
       console.error('Error upgrading Kubernetes version:', error);
       setError(`Failed to upgrade Kubernetes: ${error.message}`);

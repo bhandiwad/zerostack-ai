@@ -17,19 +17,31 @@ const ClusterCreation = () => {
 
   const [loading, setLoading] = useState(false);
 
+  // Import the API utility
   const apiCall = async (endpoint, options = {}) => {
     try {
-      const response = await fetch(`http://localhost:5002/api${endpoint}`, {
-        method: 'GET',
+      // Use the API utility with proper error handling
+      const response = await fetch(`http://localhost:5002/api/multitenant${endpoint}`, {
+        method: options.method || 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          ...(options.headers || {})
         },
-        ...options
+        body: options.body,
+        credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const error = await response.text();
+        console.error(`API call failed: ${response.status} ${response.statusText}`, error);
+        throw new Error(error || 'API request failed');
+      }
+
+      // Handle empty responses
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        return { success: true };
       }
 
       return await response.json();
@@ -43,7 +55,7 @@ const ClusterCreation = () => {
     e.preventDefault();
     setLoading(true);
 
-    const result = await apiCall('/clusters/create', {
+    const result = await apiCall('/clusters', {
       method: 'POST',
       body: JSON.stringify({
         name: formData.name,
